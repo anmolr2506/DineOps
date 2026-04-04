@@ -152,7 +152,7 @@ const duplicateFloor = async ({ floorId }) => {
     }
 };
 
-const getTables = async ({ floorId }) => {
+const getTables = async ({ floorId, slotStart, slotEnd }) => {
     const floorResult = await pool.query(
         `SELECT id, name FROM floors WHERE id = $1 LIMIT 1`,
         [floorId]
@@ -161,21 +161,92 @@ const getTables = async ({ floorId }) => {
         throw new ServiceError('Floor not found.', 404);
     }
 
-    const result = await pool.query(
-        `
-        SELECT id, floor_id, table_number, seats, is_active
-        FROM tables
-        WHERE floor_id = $1
-        ORDER BY table_number ASC
-        `,
-        [floorId]
-    );
+    const hasSlot = slotStart && slotEnd;
+
+    let result;
+    if (hasSlot) {
+        await pool.query(`DELETE FROM table_holds WHERE expires_at <= NOW()`);
+        result = await pool.query(
+            `
+            SELECT
+                t.id,
+                t.floor_id,
+                t.table_number,
+                t.seats,
+                t.is_active,
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM table_reservations r
+                        WHERE r.table_id = t.id
+                          AND r.status = 'confirmed'
+                          AND r.reservation_start < $3
+                          AND r.reservation_end > $2
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM table_holds h
+                        WHERE h.table_id = t.id
+                          AND h.expires_at > NOW()
+                          AND h.slot_start < $3
+                          AND h.slot_end > $2
+                    )
+                ) AS is_occupied,
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id', r.id,
+                                'name', r.customer_name,
+                                'phone', r.phone,
+                                'start', r.reservation_start,
+                                'end', r.reservation_end,
+                                'duration_minutes', ROUND(EXTRACT(EPOCH FROM (r.reservation_end - r.reservation_start)) / 60.0)::int,
+                                'guests', r.guests,
+                                'status', r.status
+                            )
+                            ORDER BY r.reservation_start ASC
+                        )
+                        FROM table_reservations r
+                        WHERE r.table_id = t.id
+                          AND r.status = 'confirmed'
+                          AND r.reservation_start < $3
+                          AND r.reservation_end > $2
+                    ),
+                    '[]'::json
+                ) AS bookings
+            FROM tables t
+            WHERE t.floor_id = $1
+            ORDER BY t.table_number ASC
+            `,
+            [floorId, slotStart, slotEnd]
+        );
+    } else {
+        result = await pool.query(
+            `
+            SELECT
+                t.id,
+                t.floor_id,
+                t.table_number,
+                t.seats,
+                t.is_active,
+                FALSE AS is_occupied,
+                '[]'::json AS bookings
+            FROM tables t
+            WHERE t.floor_id = $1
+            ORDER BY t.table_number ASC
+            `,
+            [floorId]
+        );
+    }
 
     return {
         floor: floorResult.rows[0],
         tables: result.rows.map((row) => ({
             ...row,
-            status: toStatus(row.is_active)
+            status: toStatus(row.is_active),
+            is_occupied: row.is_occupied,
+            bookings: row.bookings || []
         }))
     };
 };
@@ -313,6 +384,44 @@ const updateTableStatus = async ({ tableId, status }) => {
     };
 };
 
+const clearTableBookings = async ({ tableId }) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const tableExists = await client.query(
+            `SELECT id FROM tables WHERE id = $1 LIMIT 1`,
+            [tableId]
+        );
+
+        if (tableExists.rows.length === 0) {
+            throw new ServiceError('Table not found.', 404);
+        }
+
+        const holdsDeleted = await client.query(
+            `DELETE FROM table_holds WHERE table_id = $1 RETURNING id`,
+            [tableId]
+        );
+
+        const bookingsDeleted = await client.query(
+            `DELETE FROM table_reservations WHERE table_id = $1 RETURNING id`,
+            [tableId]
+        );
+
+        await client.query('COMMIT');
+
+        return {
+            cleared_holds: holdsDeleted.rowCount || 0,
+            cleared_reservations: bookingsDeleted.rowCount || 0
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
     ServiceError,
     getFloors,
@@ -325,5 +434,6 @@ module.exports = {
     updateTable,
     deleteTable,
     duplicateTable,
-    updateTableStatus
+    updateTableStatus,
+    clearTableBookings
 };

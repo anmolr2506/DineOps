@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import FloorCard from '../components/floorplan/FloorCard';
 import TableCard from '../components/floorplan/TableCard';
@@ -8,6 +9,23 @@ import AddFloorModal from '../components/floorplan/AddFloorModal';
 import AddTableModal from '../components/floorplan/AddTableModal';
 
 const API_BASE = 'http://localhost:5000/api';
+
+const buildDefaultSlot = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 60);
+    now.setSeconds(0, 0);
+
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+
+    return {
+        date: `${yyyy}-${mm}-${dd}`,
+        time: `${hh}:${min}`
+    };
+};
 
 const FloorPlanPage = () => {
     const navigate = useNavigate();
@@ -27,6 +45,11 @@ const FloorPlanPage = () => {
     const [tableModalOpen, setTableModalOpen] = useState(false);
     const [savingFloor, setSavingFloor] = useState(false);
     const [savingTable, setSavingTable] = useState(false);
+
+    const defaultSlot = useMemo(() => buildDefaultSlot(), []);
+    const [slotDate, setSlotDate] = useState(defaultSlot.date);
+    const [slotTime, setSlotTime] = useState(defaultSlot.time);
+    const durationMinutes = 120;
 
     const selectedFloor = useMemo(
         () => floors.find((floor) => floor.id === selectedFloorId) || null,
@@ -56,7 +79,12 @@ const FloorPlanPage = () => {
         }
 
         const response = await axios.get(`${API_BASE}/tables`, {
-            params: { floor_id: floorId }
+            params: {
+                floor_id: floorId,
+                date: slotDate,
+                time: slotTime,
+                duration_minutes: durationMinutes
+            }
         });
 
         setTables(response.data.tables || []);
@@ -83,7 +111,27 @@ const FloorPlanPage = () => {
         loadTables(selectedFloorId).catch((err) => {
             setError(err.response?.data?.error || 'Failed to load tables.');
         });
-    }, [selectedFloorId]);
+    }, [selectedFloorId, slotDate, slotTime]);
+
+    useEffect(() => {
+        const socket = io('http://localhost:5000', {
+            autoConnect: true,
+            transports: ['websocket']
+        });
+
+        const onReservationChange = () => {
+            loadFloors().catch(() => {});
+            if (selectedFloorId) {
+                loadTables(selectedFloorId).catch(() => {});
+            }
+        };
+
+        socket.on('table_reservation_changed', onReservationChange);
+        return () => {
+            socket.off('table_reservation_changed', onReservationChange);
+            socket.disconnect();
+        };
+    }, [selectedFloorId, slotDate, slotTime]);
 
     const handleCreateFloor = async (floorName) => {
         try {
@@ -204,6 +252,16 @@ const FloorPlanPage = () => {
         }
     };
 
+    const handleClearTableBookings = async (tableId) => {
+        try {
+            setError('');
+            await axios.delete(`${API_BASE}/tables/${tableId}/bookings`);
+            await loadTables(selectedFloorId);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to clear table bookings.');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-linear-to-br from-[#050b17] via-[#0b1a30] to-[#0f2442] px-4 py-8 text-[#f8efe0] sm:px-8">
             <div className="mx-auto max-w-7xl space-y-6">
@@ -214,7 +272,7 @@ const FloorPlanPage = () => {
                             <h1 className="mt-1 text-4xl font-semibold" style={{ fontFamily: '"Cormorant Garamond", serif' }}>
                                 Manage Restaurant Floor Plan
                             </h1>
-                            <p className="mt-2 text-sm text-[#f8efe0]/70">Shared floor and table configuration across all sessions.</p>
+                            <p className="mt-2 text-sm text-[#f8efe0]/70">Shared floor plan with live reservation occupancy for selected slot.</p>
                         </div>
                         <div className="flex flex-wrap gap-3">
                             <button
@@ -246,6 +304,27 @@ const FloorPlanPage = () => {
                     </div>
                 </header>
 
+                <section className="rounded-2xl border border-white/10 bg-[#0a1628]/75 p-5">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#c9a14a]/75">Reservation Slot Preview</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                        <input
+                            type="date"
+                            value={slotDate}
+                            onChange={(event) => setSlotDate(event.target.value)}
+                            className="rounded-lg border border-white/15 bg-white px-4 py-3 text-sm text-black"
+                        />
+                        <input
+                            type="time"
+                            value={slotTime}
+                            onChange={(event) => setSlotTime(event.target.value)}
+                            className="rounded-lg border border-white/15 bg-white px-4 py-3 text-sm text-black"
+                        />
+                        <div className="rounded-lg border border-[#c9a14a]/35 bg-[#0d1d35] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#f5dfb3]">
+                            Duration: {durationMinutes} mins
+                        </div>
+                    </div>
+                </section>
+
                 {error && (
                     <div className="rounded-lg border border-red-400/50 bg-red-900/30 p-3 text-sm text-red-100">
                         {error}
@@ -257,7 +336,7 @@ const FloorPlanPage = () => {
                     {loading ? (
                         <p className="mt-3 text-sm text-[#f8efe0]/70">Loading floor plan...</p>
                     ) : floors.length === 0 ? (
-                        <p className="mt-3 text-sm text-[#f8efe0]/70">No floors available for this session.</p>
+                        <p className="mt-3 text-sm text-[#f8efe0]/70">No floors available.</p>
                     ) : (
                         <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-4">
                             {floors.map((floor) => (
@@ -296,10 +375,13 @@ const FloorPlanPage = () => {
                                     table={table}
                                     canManage={canManageTables}
                                     canToggleStatus={canToggleStatus}
+                                    occupiedStyle="fill"
+                                    showBookings={true}
                                     onUpdate={handleUpdateTable}
                                     onDuplicate={handleDuplicateTable}
                                     onDelete={handleDeleteTable}
                                     onToggleStatus={handleToggleStatus}
+                                    onClearBookings={handleClearTableBookings}
                                 />
                             ))}
                         </div>
