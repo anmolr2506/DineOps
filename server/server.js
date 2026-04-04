@@ -28,6 +28,7 @@ const floorPlanRoutes = require('./routes/floorPlan.routes');
 const customerReservationRoutes = require('./routes/customerReservation.routes');
 const posTerminalRoutes = require('./routes/posTerminal.routes');
 const paymentRoutes = require('./routes/payment.routes');
+const kitchenRoutes = require('./routes/kitchen.routes');
 const { cleanupExpiredReservationsAndHolds } = require('./services/customerReservation.service');
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
@@ -39,6 +40,7 @@ app.use('/api', floorPlanRoutes);
 app.use('/api', customerReservationRoutes);
 app.use('/api', posTerminalRoutes);
 app.use('/api', paymentRoutes);
+app.use('/api/kitchen', kitchenRoutes);
 
 io.on('connection', (socket) => {
   socket.on('join_session_room', (sessionId) => {
