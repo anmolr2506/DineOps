@@ -20,8 +20,12 @@ app.use(express.json());
 
 const authRoutes = require('./routes/auth.routes');
 const sessionRoutes = require('./routes/session.routes');
+const categoryRoutes = require('./routes/category.routes');
+const variantRoutes = require('./routes/variant.routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api', categoryRoutes);
+app.use('/api/variants', variantRoutes);
 
 io.on('connection', (socket) => {
   socket.on('join_session_room', (sessionId) => {

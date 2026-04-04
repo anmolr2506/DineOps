@@ -134,11 +134,11 @@ function Signup() {
                             <select
                                 value={role}
                                 onChange={e => setRole(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded text-[#f8f0e3] focus:outline-none focus:ring-2 focus:ring-[#d7b26d]/50 transition-all focus:border-[#d7b26d]/60 appearance-none drop-shadow-md"
+                                className="w-full bg-white border border-white/10 px-4 py-3 rounded text-black focus:outline-none focus:ring-2 focus:ring-[#d7b26d]/50 transition-all focus:border-[#d7b26d]/60 appearance-none drop-shadow-md"
                             >
-                                <option value="admin" className="bg-[#0C1730] text-[#f8f0e3]">Admin</option>
-                                <option value="staff" className="bg-[#0C1730] text-[#f8f0e3]">Staff</option>
-                                <option value="kitchen" className="bg-[#0C1730] text-[#f8f0e3]">Kitchen</option>
+                                <option value="admin" className="bg-white text-black">Admin</option>
+                                <option value="staff" className="bg-white text-black">Staff</option>
+                                <option value="kitchen" className="bg-white text-black">Kitchen</option>
                             </select>
                         </div>
 
