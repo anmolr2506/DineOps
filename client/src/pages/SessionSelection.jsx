@@ -89,6 +89,11 @@ const SessionSelection = () => {
         }
     };
 
+    const handleOpenFloorPlan = () => {
+        setError('');
+        navigate('/floor-plan');
+    };
+
     const handleCreateSession = async (e) => {
         e.preventDefault();
 
@@ -219,6 +224,13 @@ const SessionSelection = () => {
                                     )}
                                 </button>
                             )}
+                            <button
+                                type="button"
+                                onClick={handleOpenFloorPlan}
+                                className="rounded-lg border border-[#d4b173]/45 bg-[#0d1d35] px-5 py-3 text-sm font-semibold uppercase tracking-wide text-[#f5dfb3] transition hover:bg-[#112443]"
+                            >
+                                Floor Plan
+                            </button>
                             {canViewGlobalDashboard && (
                                 <button
                                     type="button"

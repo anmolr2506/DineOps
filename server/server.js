@@ -24,12 +24,14 @@ const categoryRoutes = require('./routes/category.routes');
 const variantRoutes = require('./routes/variant.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const userRoutes = require('./routes/user.routes');
+const floorPlanRoutes = require('./routes/floorPlan.routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api/variants', variantRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api', floorPlanRoutes);
 
 io.on('connection', (socket) => {
   socket.on('join_session_room', (sessionId) => {

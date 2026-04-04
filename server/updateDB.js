@@ -15,7 +15,22 @@ async function updateDB() {
 
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry BIGINT;`);
-        console.log("Successfully updated users table schema for approval workflow and password resets.");
+
+        await pool.query(`ALTER TABLE floors DROP CONSTRAINT IF EXISTS floors_session_id_fkey;`);
+        await pool.query(`ALTER TABLE tables DROP CONSTRAINT IF EXISTS tables_session_id_fkey;`);
+
+        await pool.query(`ALTER TABLE floors DROP CONSTRAINT IF EXISTS floors_name_key;`);
+        await pool.query(`ALTER TABLE floors DROP CONSTRAINT IF EXISTS unique_floor_name_per_session;`);
+                await pool.query(`ALTER TABLE floors ADD CONSTRAINT floors_name_key UNIQUE (name);`);
+
+        await pool.query(`ALTER TABLE tables DROP CONSTRAINT IF EXISTS unique_table_per_floor;`);
+        await pool.query(`ALTER TABLE tables DROP CONSTRAINT IF EXISTS unique_table_per_floor_session;`);
+                await pool.query(`ALTER TABLE tables ADD CONSTRAINT unique_table_per_floor UNIQUE (floor_id, table_number);`);
+
+        await pool.query(`ALTER TABLE floors DROP COLUMN IF EXISTS session_id;`);
+        await pool.query(`ALTER TABLE tables DROP COLUMN IF EXISTS session_id;`);
+
+                console.log("Successfully updated users, floors, and tables schema for approval workflow and global floor plans.");
     } catch (err) {
         console.error("Error updating DB:", err);
     } finally {

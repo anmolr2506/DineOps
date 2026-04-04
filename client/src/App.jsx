@@ -13,6 +13,7 @@ import WaitingApproval from './pages/WaitingApproval';
 import GlobalDashboard from './pages/GlobalDashboard';
 import SessionDashboard from './pages/SessionDashboard';
 import SessionSelection from './pages/SessionSelection';
+import FloorPlanPage from './pages/FloorPlanPage';
 import MenuPage from './pages/MenuPage';
 import PosPage from './pages/PosPage';
 const Unauthorized = () => <div className="p-10 text-red-500 font-bold text-2xl">401 Unauthorized</div>;
@@ -44,6 +45,10 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['admin', 'staff', 'kitchen']} />}>
               <Route path="/session-dashboard" element={<SessionDashboard />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'staff', 'kitchen']} requireSession={false} />}>
+              <Route path="/floor-plan" element={<FloorPlanPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['admin']} requireSession={false} />}>
