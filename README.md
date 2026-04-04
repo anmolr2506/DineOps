@@ -121,11 +121,49 @@ You can immediately log in using the following seeded credentials:
 
 ---
 
+## ✨ Features
+
+DineOps comes packed with powerful features for restaurant operations:
+
+### 🔐 Authentication & Security
+- Secure JWT-based authentication
+- Role-based access control (Admin, Staff, Kitchen)
+- Password reset via email
+- Protected routes and middleware
+
+### 📊 Session Management
+- Create and manage restaurant sessions
+- Session-scoped data isolation
+- Real-time session status with Socket.IO
+- Admin controls for starting/stopping sessions
+
+### 🍽️ Menu Management
+- Category and product management
+- Variant groups with pricing (e.g., Size: Small/Medium/Large with price adjustments)
+- Session-aware menu data
+- Inline editing and CRUD operations
+- Pagination and search functionality
+
+### 🛒 Point of Sale (POS)
+- Interactive product selection
+- Variant-based pricing calculation
+- Shopping cart with real-time totals
+- Order processing and management
+
+### 🎨 Premium UI/UX
+- Cinematic dark navy and gold theme
+- Responsive design with Tailwind CSS
+- Smooth animations and transitions
+- Accessible color contrasts
+
+---
+
 ## 💻 Tech Stack
-- **Frontend:** React.js, Tailwind CSS
-- **Backend:** Node.js, Express.js
-- **Database:** PostgreSQL (pg)
-- **Security:** bcrypt (hashing), jsonwebtoken (auth), nodemailer (email service)
+- **Frontend:** React.js, React Router, Axios, Socket.IO Client, Tailwind CSS
+- **Backend:** Node.js, Express.js, Socket.IO
+- **Database:** PostgreSQL (pg driver)
+- **Security:** bcrypt (password hashing), jsonwebtoken (JWT), nodemailer (email)
+- **Development:** Vite (frontend), ESLint, PostCSS
 
 ---
 
