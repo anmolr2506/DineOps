@@ -1,212 +1,195 @@
-# DineOps - Intelligence POS Solution 🍽️
+# DineOps
 
-DineOps is a premium, cinematic-themed Restaurant Point of Sale (POS) and operations management platform. It features robust role-based access control (Admin, Staff, Kitchen), seamless authentication flows, and a breathtaking cinematic UI.
+DineOps is a premium restaurant POS system built with the PERN stack.
 
-## 📋 Prerequisites
+This guide helps you recreate the project on a new machine and run it without setup/runtime errors.
 
-Before you begin, ensure you have the following installed on your machine:
-- [Node.js](https://nodejs.org/) (v16 or higher)
-- [PostgreSQL](https://www.postgresql.org/) (pgAdmin recommended)
-- Git
+## 0) Quickstart (Copy/Paste)
 
----
+Use this fastest path on a fresh system:
 
-## 🚀 Getting Started
-
-### 1. Clone the repository
 ```bash
 git clone https://github.com/anmolr2506/DineOps.git
 cd DineOps
+npm --prefix server install
+npm --prefix client install
 ```
 
-### 2. Install Dependencies
-You need to install dependencies for **both** the client and server separately.
+Then create `server/.env` using the template in section 3, and run:
 
-**For the Backend Server:**
 ```bash
-cd server
-npm install
+node server/runSetup.js
+npm --prefix server run dev
+npm --prefix client run dev
 ```
 
-**For the Frontend Client:**
-```bash
-cd ../client
-npm install
-```
+Open `http://localhost:5173`.
 
----
+## 1) Prerequisites
 
-### 3. Database Setup (PostgreSQL)
-1. Open pgAdmin (or your preferred Postgres CLI).
-2. Create a brand new database and name it `pos_cafe`.
-3. *(The tables and default data will be generated automatically in the next few steps, no manual queries required!)*
+- Node.js 18+ and npm
+- PostgreSQL 14+ (or compatible)
+- Git
 
----
+Optional but recommended:
+- pgAdmin for DB inspection
 
-### 4. Environment Variables Configuration
-In the **`server`** directory, create a new file named `.env`. 
-Copy the following structure into it and replace the values with your local machine's context:
+## 2) Clone and Install
 
-```env
-# Server Config
+Run from your preferred terminal:
+
+git clone https://github.com/anmolr2506/DineOps.git
+cd DineOps
+npm --prefix server install
+npm --prefix client install
+
+## 3) Create Environment File
+
+Create server/.env with the values below adjusted for your system:
+
 PORT=5000
-
-# Database Credentials
 PG_USER=postgres
-PG_PASSWORD=your_pgadmin_password  # <-- CHANGE THIS TO YOUR LOCAL PG PASSWORD!
+PG_PASSWORD=your_postgres_password
 PG_HOST=localhost
 PG_PORT=5432
 PG_DATABASE=pos_cafe
+JWT_SECRET=replace_with_a_long_random_secret
 
-# JWT Authentication
-JWT_SECRET=your_super_secret_jwt_key_here
+# Optional SMTP (for forgot-password email)
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=
 
-# Email / SMTP Configuration (Ethereal test accounts or actual SMTP)
-SMTP_HOST=smtp.ethereal.email
-SMTP_PORT=587
-SMTP_USER=your_smtp_user
-SMTP_PASS=your_smtp_password
-```
+Important:
+- Use PG_* variable names exactly as shown.
+- Do not use DB_* names.
 
-⚠️ **Important:** Use `PG_USER`, `PG_PASSWORD`, `PG_HOST`, `PG_PORT`, and `PG_DATABASE` as the variable names (not `DB_*`). The application code expects these specific names.
+## 4) Database Setup (Fresh Install)
 
----
+The setup runner recreates the DB schema and executes all numbered SQL files in server/database.
 
-### 5. Initialize & Seed the Database
-Once your `.env` file is set up and the `pos_cafe` database exists, run the automated setup script to build your tables and seed the initial users/data:
+From project root:
 
-```bash
-cd server
-node runSetup.js
-```
-*If successful, the terminal will log a sequence confirming tables were created and seed data was injected.*
+node server/runSetup.js
 
-`runSetup.js` now automatically runs every numbered SQL file in `server/database` in order, so new scripts such as `10_dashboard.sql` are picked up without changing the setup runner again.
+What this does:
+- Creates/recreates pos_cafe
+- Runs scripts in order (01_*.sql, 02_*.sql, ...)
+- Seeds base data and default admin/kitchen users
 
-If you want to rebuild the demo data after the schema already exists, you can also run the separate reset helper:
+## 5) Database Migration (Existing Install)
 
-```bash
-cd server
-psql -d pos_cafe -f database/reset_and_seed.sql
-```
-This script clears transactional data, reseeds the sample orders and payments, and refreshes the dashboard materialized views.
+If you already had an older DB and pulled latest code, run:
 
----
+node server/updateDB.js
 
-### 6. Run the Application
-You will need to run the application using two separate terminal windows.
+This updates users table for approval workflow compatibility:
+- Adds approval_status when missing
+- Backfills from legacy is_approved
+- Makes role nullable for pending users
+- Updates role/status constraints
 
-**Terminal 1 (Backend API):**
-```bash
-cd server
-npm run dev
-# Note: If 'npm run dev' doesn't exist in package.json, just use 'node server.js'
-```
+## 6) Run Backend and Frontend
 
-**Terminal 2 (Frontend React App):**
-```bash
-cd client
-npm run dev 
-# Note: If using Create React App, use 'npm start'
-```
+Terminal A (backend):
 
-The app will now be running on `http://localhost:5173` (or 3000 depending on Vite/CRA).
+npm --prefix server run dev
 
----
+Terminal B (frontend):
 
-## 🔑 Default Seeded Accounts
-You can immediately log in using the following seeded credentials:
-- **Admin Access:** `admin@dineops.com` / `admin123`
-- **Kitchen Access:** `kitchen@dineops.com` / `kitchen123`
+npm --prefix client run dev
 
----
+Open:
+- Frontend: http://localhost:5173
+- Backend health: http://localhost:5000
 
-## ✨ Features
+## 7) Build Verification
 
-DineOps comes packed with powerful features for restaurant operations:
+To validate production build:
 
-### 🔐 Authentication & Security
-- Secure JWT-based authentication
-- Role-based access control (Admin, Staff, Kitchen)
-- Password reset via email
-- Protected routes and middleware
+npm --prefix client run build
 
-### 📊 Session Management
-- Create and manage restaurant sessions
-- Session-scoped data isolation
-- Real-time session status with Socket.IO
-- Admin controls for starting/stopping sessions
+On Windows PowerShell, if execution policy blocks npm scripts, run via cmd:
 
-### 🍽️ Menu Management
-- Category and product management
-- Variant groups with pricing (e.g., Size: Small/Medium/Large with price adjustments)
-- Session-aware menu data
-- Inline editing and CRUD operations
-- Pagination and search functionality
+cmd /c "cd /d D:\path\to\DineOps && npm --prefix client run build"
 
-### 🛒 Point of Sale (POS)
-- Interactive product selection
-- Variant-based pricing calculation
-- Shopping cart with real-time totals
-- Order processing and management
+## 8) Default Seed Accounts
 
-### 🎨 Premium UI/UX
-- Cinematic dark navy and gold theme
-- Responsive design with Tailwind CSS
-- Smooth animations and transitions
-- Accessible color contrasts
+- Admin: admin@dineops.com / admin123
+- Kitchen: kitchen@dineops.com / kitchen123
 
----
+## 9) New Approval Workflow
 
-## 💻 Tech Stack
-- **Frontend:** React.js, React Router, Axios, Socket.IO Client, Tailwind CSS
-- **Backend:** Node.js, Express.js, Socket.IO
-- **Database:** PostgreSQL (pg driver)
-- **Security:** bcrypt (password hashing), jsonwebtoken (JWT), nodemailer (email)
-- **Development:** Vite (frontend), ESLint, PostCSS
+User onboarding now follows admin approval:
 
----
+1. New signup creates:
+- role = null
+- approval_status = pending
 
-## 🛠️ Troubleshooting
+2. On login:
+- If approval_status is not approved, user is redirected to /waiting
 
-### Issue 1: `runSetup.js` fails with "error: database is being accessed by other users"
-**Cause:** There are active connections to the `pos_cafe` database preventing it from being dropped and recreated.
+3. Waiting screen:
+- Shows pending/rejected state
+- Supports manual refresh
+- Auto-checks status every few seconds
 
-**Solution:**
-- The `runSetup.js` script now automatically terminates all existing connections before setting up the database.
-- If you still get this error, close any pgAdmin connections or database clients pointing to `pos_cafe` and try again.
+4. Admin flow:
+- Admin opens Approval Requests from Sessions page
+- Can approve (with role assignment) or reject pending users
 
----
+Roles that can be assigned:
+- admin
+- staff
+- kitchen
 
-### Issue 2: Environment variables not recognized / Connection fails
-**Cause:** Incorrect `.env` variable names. The code expects `PG_*` variables, not `DB_*`.
+## 10) Approval APIs
 
-**Solution:**
-Ensure your `.env` file uses these exact variable names:
-```env
-PG_USER=postgres
-PG_PASSWORD=your_password
-PG_HOST=localhost
-PG_PORT=5432
-PG_DATABASE=pos_cafe
-```
+All APIs require JWT. Approval management endpoints require admin role.
 
-❌ **Do NOT use:** `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`
+- GET /api/users/my-approval-status
+- GET /api/users/pending
+- GET /api/users/pending/count
+- POST /api/users/approve
+	- body: { "user_id": number, "role": "admin|staff|kitchen" }
+- POST /api/users/reject
+	- body: { "user_id": number }
 
----
+## 11) Common Errors and Fixes
 
-### Issue 3: `runSetup.js` fails to execute
-**Solution:**
-- Make sure you're in the `server` directory: `cd server`
-- Verify Node.js is installed: `node --version`
-- Verify PostgreSQL is running and accessible
-- Check that your `.env` file is in the `server` directory
-- If you still have issues, manually create the `pos_cafe` database in pgAdmin first, then run `node runSetup.js`
+1. Error: database is being accessed by other users
+- Close pgAdmin query tabs/connections to pos_cafe and rerun node server/runSetup.js
 
----
+2. Error: authentication failed for user postgres
+- Verify PG_USER and PG_PASSWORD in server/.env
+- Confirm PostgreSQL service is running
 
-### Issue 4: Port 5000 already in use
-**Cause:** Another application is using port 5000.
+3. Error: invalid token / unauthorized after login
+- Clear local storage token/session and log in again
+- Ensure backend is running on the same PORT as configured in frontend API URLs
 
-**Solution:**
-Update the `PORT` variable in your `.env` file to a different port (e.g., 5001, 5002) or kill the process using port 5000.
+4. App loads but new users cannot access dashboard
+- Expected behavior: new users must be approved by an admin first
+
+5. Port conflict on 5000 or 5173
+- Change server PORT in server/.env
+- Restart backend/frontend terminals
+
+## 12) Tech Stack
+
+- Frontend: React, React Router, Axios, Tailwind, Socket.IO client, Vite
+- Backend: Node.js, Express, PostgreSQL (pg), Socket.IO
+- Auth/Security: JWT, bcrypt
+
+## 13) Suggested First Run Checklist
+
+1. Create server/.env
+2. Install deps for server and client
+3. Run node server/runSetup.js
+4. Start backend and frontend
+5. Login with seeded admin
+6. Create a new user account
+7. Approve that user from Approval Requests
+8. Login as approved user and continue to sessions/dashboard

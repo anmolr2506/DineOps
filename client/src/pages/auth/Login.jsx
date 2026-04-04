@@ -15,7 +15,11 @@ function Login() {
         setIsLoading(true);
         setError(null);
         try {
-            await login(email, password);
+            const response = await login(email, password);
+            if (response.approval_status !== 'approved') {
+                navigate('/waiting');
+                return;
+            }
             navigate('/sessions');
         } catch (err) {
             setError(err.response?.data?.error || "Login Failed");

@@ -9,6 +9,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import WaitingApproval from './pages/WaitingApproval';
 import GlobalDashboard from './pages/GlobalDashboard';
 import SessionDashboard from './pages/SessionDashboard';
 import SessionSelection from './pages/SessionSelection';
@@ -28,6 +29,10 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+
+            <Route element={<ProtectedRoute requireSession={false} />}>
+              <Route path="/waiting" element={<WaitingApproval />} />
+            </Route>
 
             <Route element={<ProtectedRoute requireSession={false} />}>
               <Route path="/sessions" element={<SessionSelection />} />

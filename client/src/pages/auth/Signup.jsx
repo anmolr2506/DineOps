@@ -7,7 +7,6 @@ function Signup() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState('staff');
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -26,7 +25,7 @@ function Signup() {
 
         setIsLoading(true);
         try {
-            await register(name, email, password, role);
+            await register(name, email, password);
             setTimeout(() => navigate('/login'), 1500);
         } catch (err) {
             setError(err.response?.data?.error || "Registration Failed");
@@ -129,17 +128,8 @@ function Signup() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-[#d7b26d]/80 tracking-wider">ROLE</label>
-                            <select
-                                value={role}
-                                onChange={e => setRole(e.target.value)}
-                                className="w-full bg-white border border-white/10 px-4 py-3 rounded text-black focus:outline-none focus:ring-2 focus:ring-[#d7b26d]/50 transition-all focus:border-[#d7b26d]/60 appearance-none drop-shadow-md"
-                            >
-                                <option value="admin" className="bg-white text-black">Admin</option>
-                                <option value="staff" className="bg-white text-black">Staff</option>
-                                <option value="kitchen" className="bg-white text-black">Kitchen</option>
-                            </select>
+                        <div className="rounded-md border border-[#d7b26d]/30 bg-[#d7b26d]/10 px-4 py-3 text-xs text-[#f8f0e3]/85">
+                            Accounts require admin approval before system access. You can sign in after your role is assigned.
                         </div>
 
                         <button
