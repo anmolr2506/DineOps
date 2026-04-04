@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SessionProvider } from './context/SessionContext';
@@ -22,6 +22,8 @@ import POSTerminal from './pages/POSTerminal';
 import PaymentPage from './pages/PaymentPage';
 import CustomersPage from './pages/CustomersPage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
+import KitchenPage from './pages/KitchenPage';
+import ProfileDock from './components/layout/ProfileDock';
 const Unauthorized = () => <div className="p-10 text-red-500 font-bold text-2xl">401 Unauthorized</div>;
 
 function App() {
@@ -29,6 +31,7 @@ function App() {
     <AuthProvider>
       <SessionProvider>
         <Router>
+          <ProfileDock />
           <Routes>
             <Route path="/" element={<HomePage />} />
 
@@ -77,8 +80,8 @@ function App() {
               <Route path="/order-history" element={<OrderHistoryPage />} />
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['kitchen']} />}>
-              <Route path="/kitchen" element={<Navigate to="/session-dashboard" replace />} />
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'kitchen']} />}>
+              <Route path="/kitchen" element={<KitchenPage />} />
               <Route path="/kitchen/dashboard" element={<Navigate to="/kitchen" replace />} />
             </Route>
 
@@ -97,3 +100,4 @@ function App() {
 }
 
 export default App;
+

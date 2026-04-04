@@ -108,7 +108,9 @@ node server/runSetup.js
 5. Injects default seed data (admin accounts, default floors, tables, categories, menu items, and variant groups).
 
 *Note: If you already have a database and just pulled new code, you can alternatively run 
-ode server/updateDB.js to only apply missing migrations without dropping your data.*
+node server/updateDB.js to only apply missing migrations without dropping your data. This script now also applies the kitchen display migration, including the `is_prepared` item flag and kitchen order status constraints.*
+
+**Important for Kitchen Display:** the kitchen board is session-based. After logging in, make sure a session is selected before opening `/kitchen`.
 
 ---
 
@@ -134,7 +136,8 @@ npm run dev
 
 ## 6. Default Login Credentials
 
-The unSetup.js script automatically creates the following default accounts. Use them to log in at http://localhost:5173/login:
+The 
+unSetup.js script automatically creates the following default accounts. Use them to log in at http://localhost:5173/login:
 
 - **Admin Account**
   - **Email:** dmin@dineops.com
@@ -154,6 +157,7 @@ Once logged in as Admin, verify the following to ensure your setup is complete:
 2. **Terminal:** Navigate to the **Terminal**, select a Floor and Table, and add an item (e.g., Pizza with variants).
 3. **Payment:** Click **Finalize & Go To Payment**. Test the dummy Razorpay UI under the UPI section or process a Cash order.
 4. **Kitchen Sync:** Open a private browsing window, log in as Kitchen, and verify the paid order appears on the Kitchen Dashboard automatically.
+5. **Kitchen Session Switch:** On the Kitchen page, confirm the current session is shown in the header and that you can switch sessions if multiple sessions are active.
 
 ---
 
@@ -170,5 +174,8 @@ ode server/runSetup.js.
 - *Fix:* Ensure the background terminal running 
 pm run dev in the server folder hasn't crashed. Verify it's running on port 5000.
 
-**4. Razorpay checkout window doesn't open**
+**4. Kitchen dashboard shows no tickets**
+- *Fix:* Confirm you are logged in as `admin` or `kitchen`, and that a session is selected. The kitchen display only loads orders for the active session.
+
+**5. Razorpay checkout window doesn't open**
 - *Fix:* Make sure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are correctly set in your .env file without quotes.

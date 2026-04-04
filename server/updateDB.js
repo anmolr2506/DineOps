@@ -1,4 +1,31 @@
 const pool = require('./config/db');
+const fs = require('fs');
+const path = require('path');
+
+const readSqlFileSafely = (filePath) => {
+    const raw = fs.readFileSync(filePath);
+
+    // Detect UTF-16 LE BOM (FF FE) or UTF-16 BE BOM (FE FF)
+    if (raw.length >= 2 && raw[0] === 0xff && raw[1] === 0xfe) {
+        return raw.toString('utf16le').replace(/^\uFEFF/, '');
+    }
+
+    if (raw.length >= 2 && raw[0] === 0xfe && raw[1] === 0xff) {
+        const swapped = Buffer.allocUnsafe(raw.length - 2);
+        for (let i = 2; i < raw.length; i += 2) {
+            swapped[i - 2] = raw[i + 1];
+            swapped[i - 1] = raw[i];
+        }
+        return swapped.toString('utf16le').replace(/^\uFEFF/, '');
+    }
+
+    const utf8Text = raw.toString('utf8');
+    if (utf8Text.includes('\u0000')) {
+        return Buffer.from(utf8Text.replace(/\u0000/g, ''), 'utf8').toString('utf8').replace(/^\uFEFF/, '');
+    }
+
+    return utf8Text.replace(/^\uFEFF/, '');
+};
 
 async function updateDB() {
     try {
@@ -85,7 +112,23 @@ async function updateDB() {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_item_variants_order_item ON order_item_variants (order_item_id);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_item_variants_value ON order_item_variants (variant_value_id);`);
 
-                console.log("Successfully updated users, floors, and tables schema for approval workflow and global floor plans.");
+        const kitchenUpdatePath = path.join(__dirname, 'database', 'kitchen_update.sql');
+        if (fs.existsSync(kitchenUpdatePath)) {
+            const kitchenSql = readSqlFileSafely(kitchenUpdatePath);
+            const statements = kitchenSql
+                .split(';')
+                .map((statement) => statement.trim())
+                .filter((statement) => statement.length > 0);
+
+            for (const statement of statements) {
+                await pool.query(statement);
+            }
+            console.log('Applied kitchen_update.sql successfully.');
+        } else {
+            console.log('kitchen_update.sql not found, skipping kitchen migration.');
+        }
+
+        console.log("Successfully updated users, floors, and tables schema for approval workflow and global floor plans.");
     } catch (err) {
         console.error("Error updating DB:", err);
     } finally {
