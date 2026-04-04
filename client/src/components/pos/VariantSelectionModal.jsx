@@ -40,12 +40,20 @@ const VariantSelectionModal = ({ open, onClose, onConfirm, product, category }) 
             }
         });
 
+        const basePrice = Number(product?.price || 0);
+        const subtotal = basePrice + extraTotal;
+        const taxPercent = Number(product?.tax_percent || 0);
+        const taxAmount = subtotal * (taxPercent / 100);
+        const finalUnitPrice = subtotal + taxAmount;
+
         return {
             details,
             extraTotal,
-            finalUnitPrice: Number(product?.price || 0) + extraTotal
+            taxPercent,
+            taxAmount,
+            finalUnitPrice
         };
-    }, [product?.price, selectedValues, variantGroups]);
+    }, [product?.price, product?.tax_percent, selectedValues, variantGroups]);
 
     if (!open || !product) return null;
 
@@ -128,6 +136,12 @@ const VariantSelectionModal = ({ open, onClose, onConfirm, product, category }) 
                         <span>Variant extras</span>
                         <span>Rs. {selectedVariantDetails.extraTotal.toFixed(2)}</span>
                     </div>
+                    {selectedVariantDetails.taxPercent > 0 && (
+                        <div className="mt-2 flex items-center justify-between text-sm text-[#f8efe0]/70">
+                            <span>Tax ({selectedVariantDetails.taxPercent}%)</span>
+                            <span>Rs. {selectedVariantDetails.taxAmount.toFixed(2)}</span>
+                        </div>
+                    )}
                     <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-lg font-semibold">
                         <span>Final unit price</span>
                         <span className="text-[#e7c98b]">Rs. {selectedVariantDetails.finalUnitPrice.toFixed(2)}</span>

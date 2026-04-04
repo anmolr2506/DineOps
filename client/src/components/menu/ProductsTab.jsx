@@ -57,6 +57,8 @@ const ProductsTab = ({ canManage, sessionId }) => {
         setEditingForm({
             name: product.name || '',
             price: product.price || '',
+            tax_percent: product.tax_percent || '',
+            value_type: product.value_type || 'unit',
             description: product.description || '',
             image_url: product.image_url || '',
             category_id: product.category_id || ''
@@ -154,6 +156,8 @@ const ProductsTab = ({ canManage, sessionId }) => {
                                 <th className="px-4 py-3">Product</th>
                                 <th className="px-4 py-3">Category</th>
                                 <th className="px-4 py-3">Price</th>
+                                <th className="px-4 py-3">Tax</th>
+                                <th className="px-4 py-3">Type</th>
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3">Actions</th>
                             </tr>
@@ -207,6 +211,39 @@ const ProductsTab = ({ canManage, sessionId }) => {
                                                 />
                                             ) : (
                                                 <span className="font-semibold text-[#e6c48a]">Rs. {Number(product.price).toFixed(2)}</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            {isEditing ? (
+                                                <select
+                                                    name="tax_percent"
+                                                    value={editingForm?.tax_percent || ''}
+                                                    onChange={handleInlineEditChange}
+                                                    className="w-24 rounded-md border border-white/15 bg-white px-3 py-2 text-sm text-black"
+                                                >
+                                                    <option value="" className="bg-white text-black">No Tax</option>
+                                                    <option value="5" className="bg-white text-black">5%</option>
+                                                    <option value="18" className="bg-white text-black">18%</option>
+                                                    <option value="28" className="bg-white text-black">28%</option>
+                                                </select>
+                                            ) : (
+                                                <span className="text-[#f8efe0]/80">{product.tax_percent ? `${product.tax_percent}%` : 'No Tax'}</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            {isEditing ? (
+                                                <select
+                                                    name="value_type"
+                                                    value={editingForm?.value_type || 'unit'}
+                                                    onChange={handleInlineEditChange}
+                                                    className="w-24 rounded-md border border-white/15 bg-white px-3 py-2 text-sm text-black"
+                                                >
+                                                    <option value="unit" className="bg-white text-black">Unit</option>
+                                                    <option value="kg" className="bg-white text-black">Kg</option>
+                                                    <option value="liter" className="bg-white text-black">Liter</option>
+                                                </select>
+                                            ) : (
+                                                <span className="text-[#f8efe0]/80 capitalize">{product.value_type || 'unit'}</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-4">

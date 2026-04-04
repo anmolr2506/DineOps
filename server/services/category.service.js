@@ -301,6 +301,8 @@ const listProducts = async ({ userId, sessionId, categoryId, search = '' }) => {
             p.description,
             p.image_url,
             p.price,
+            p.tax_percent,
+            p.value_type,
             p.is_available,
             p.session_id,
             p.created_at
@@ -326,6 +328,8 @@ const createProduct = async ({ userId, sessionId, payload }) => {
     const categoryId = Number(payload.category_id);
     const name = payload.name?.trim();
     const price = Number(payload.price);
+    const taxPercent = payload.tax_percent !== undefined ? Number(payload.tax_percent) : 0;
+    const valueType = payload.value_type || 'unit';
 
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
         throw new CategoryServiceError('Valid category_id is required.', 400);
@@ -335,6 +339,12 @@ const createProduct = async ({ userId, sessionId, payload }) => {
     }
     if (!Number.isFinite(price) || price < 0) {
         throw new CategoryServiceError('Valid price is required.', 400);
+    }
+    if (!Number.isFinite(taxPercent) || taxPercent < 0 || taxPercent > 100) {
+        throw new CategoryServiceError('Valid tax_percent is required (0-100).', 400);
+    }
+    if (!['kg', 'unit', 'liter'].includes(valueType)) {
+        throw new CategoryServiceError('Valid value_type is required (kg, unit, liter).', 400);
     }
 
     const category = await pool.query(
@@ -350,13 +360,13 @@ const createProduct = async ({ userId, sessionId, payload }) => {
     const imageUrl = payload.image_url?.trim() || null;
 
     const query = `
-        INSERT INTO products (category_id, name, price, description, image_url, session_id, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, category_id, name, description, image_url, price, is_available, session_id, created_at;
+        INSERT INTO products (category_id, name, price, tax_percent, value_type, description, image_url, session_id, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id, category_id, name, description, image_url, price, tax_percent, value_type, is_available, session_id, created_at;
     `;
 
     try {
-        const result = await pool.query(query, [categoryId, name, price, description, imageUrl, sessionId, userId]);
+        const result = await pool.query(query, [categoryId, name, price, taxPercent, valueType, description, imageUrl, sessionId, userId]);
         return result.rows[0];
     } catch (err) {
         if (err.code === '23505') {
@@ -380,11 +390,19 @@ const updateProduct = async ({ userId, sessionId, productId, payload }) => {
 
     const name = payload.name?.trim();
     const price = Number(payload.price);
+    const taxPercent = payload.tax_percent !== undefined ? Number(payload.tax_percent) : undefined;
+    const valueType = payload.value_type;
     if (!name) {
         throw new CategoryServiceError('Product name is required.', 400);
     }
     if (!Number.isFinite(price) || price < 0) {
         throw new CategoryServiceError('Valid price is required.', 400);
+    }
+    if (taxPercent !== undefined && (!Number.isFinite(taxPercent) || taxPercent < 0 || taxPercent > 100)) {
+        throw new CategoryServiceError('Valid tax_percent is required (0-100).', 400);
+    }
+    if (valueType !== undefined && !['kg', 'unit', 'liter'].includes(valueType)) {
+        throw new CategoryServiceError('Valid value_type is required (kg, unit, liter).', 400);
     }
 
     const description = payload.description?.trim() || '';
@@ -407,17 +425,19 @@ const updateProduct = async ({ userId, sessionId, productId, payload }) => {
         UPDATE products
         SET name = $1,
             price = $2,
-            description = $3,
-            image_url = $4,
-            is_available = $5,
-            category_id = COALESCE($6, category_id),
+            tax_percent = COALESCE($3, tax_percent),
+            value_type = COALESCE($4, value_type),
+            description = $5,
+            image_url = $6,
+            is_available = $7,
+            category_id = COALESCE($8, category_id),
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7 AND session_id = $8
-        RETURNING id, category_id, name, description, image_url, price, is_available, session_id, created_at;
+        WHERE id = $9 AND session_id = $10
+        RETURNING id, category_id, name, description, image_url, price, tax_percent, value_type, is_available, session_id, created_at;
     `;
 
     try {
-        const result = await pool.query(query, [name, price, description, imageUrl, isAvailable, nextCategoryId, productId, sessionId]);
+        const result = await pool.query(query, [name, price, taxPercent, valueType, description, imageUrl, isAvailable, nextCategoryId, productId, sessionId]);
         return result.rows[0];
     } catch (err) {
         if (err.code === '23505') {

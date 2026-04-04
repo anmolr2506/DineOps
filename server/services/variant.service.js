@@ -47,7 +47,7 @@ const listVariantGroups = async ({ userId, sessionId, search = '', page = 1, lim
             vg.created_at,
             COALESCE(
                 json_agg(
-                    DISTINCT jsonb_build_object('id', vgv.id, 'name', vgv.name, 'extra_price', vgv.extra_price)
+                    DISTINCT jsonb_build_object('id', vgv.id, 'name', vgv.name, 'extra_price', vgv.extra_price, 'value_type', vgv.value_type)
                 ) FILTER (WHERE vgv.id IS NOT NULL),
                 '[]'::json
             ) AS values,
@@ -117,13 +117,14 @@ const createVariantGroup = async ({ userId, sessionId, payload }) => {
         const normalizedValue = typeof value?.name === 'string' ? value.name.trim() : '';
         if (!normalizedValue) continue;
         const extraPrice = Number(value.extra_price || 0);
+        const valueType = value.value_type || 'unit';
         await pool.query(
             `
-                INSERT INTO variant_group_values (variant_group_id, name, extra_price)
-                VALUES ($1, $2, $3)
+                INSERT INTO variant_group_values (variant_group_id, name, extra_price, value_type)
+                VALUES ($1, $2, $3, $4)
                 ON CONFLICT (variant_group_id, name) DO NOTHING;
             `,
-            [group.id, normalizedValue, Number.isFinite(extraPrice) ? extraPrice : 0]
+            [group.id, normalizedValue, Number.isFinite(extraPrice) ? extraPrice : 0, valueType]
         );
     }
 
@@ -173,13 +174,14 @@ const updateVariantGroup = async ({ userId, sessionId, groupId, payload }) => {
         }
 
         const extraPrice = Number(value.extra_price || 0);
+        const valueType = value.value_type || 'unit';
         await pool.query(
             `
-                INSERT INTO variant_group_values (variant_group_id, name, extra_price)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (variant_group_id, name) DO UPDATE SET extra_price = EXCLUDED.extra_price;
+                INSERT INTO variant_group_values (variant_group_id, name, extra_price, value_type)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (variant_group_id, name) DO UPDATE SET extra_price = EXCLUDED.extra_price, value_type = EXCLUDED.value_type;
             `,
-            [groupId, normalizedName, Number.isFinite(extraPrice) ? extraPrice : 0]
+            [groupId, normalizedName, Number.isFinite(extraPrice) ? extraPrice : 0, valueType]
         );
     }
 

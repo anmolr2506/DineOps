@@ -112,7 +112,13 @@ const PosPage = () => {
                 return nextItems;
             }
 
-            const unitPrice = Number(finalUnitPrice || product.price || 0);
+            const basePrice = Number(product.price || 0);
+            const extra = Number(extraTotal || 0);
+            const subtotal = basePrice + extra;
+            const taxPercent = Number(product.tax_percent || 0);
+            const taxAmount = subtotal * (taxPercent / 100);
+            const unitPrice = subtotal + taxAmount;
+
             return [
                 ...current,
                 {
@@ -121,8 +127,10 @@ const PosPage = () => {
                     productName: product.name,
                     categoryName: category?.name || categoryLookup[product.category_id]?.name || '',
                     quantity: 1,
-                    basePrice: Number(product.price || 0),
-                    extraTotal: Number(extraTotal || 0),
+                    basePrice,
+                    extraTotal: extra,
+                    taxPercent,
+                    taxAmount,
                     unitPrice,
                     lineTotal: unitPrice,
                     selections
