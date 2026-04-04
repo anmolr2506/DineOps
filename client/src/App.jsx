@@ -12,13 +12,10 @@ import ResetPassword from './pages/auth/ResetPassword';
 import SessionSelection from './pages/SessionSelection';
 import SessionBadge from './components/SessionBadge';
 
+import DashboardLayout from './components/layout/DashboardLayout';
+import Dashboard from './pages/dashboard/Dashboard';
+
 // Placeholder Dashboards
-const AdminDashboard = () => (
-  <div className="min-h-screen bg-[#081325] p-6 sm:p-10 text-[#f4ead2]">
-    <SessionBadge />
-    <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-2xl font-bold">Admin Dashboard (Protected)</div>
-  </div>
-);
 const StaffDashboard = () => (
   <div className="min-h-screen bg-[#081325] p-6 sm:p-10 text-[#f4ead2]">
     <SessionBadge />
@@ -50,9 +47,15 @@ function App() {
               <Route path="/sessions/select" element={<SessionSelection />} />
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-              <Route path="/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/dashboard" element={<Navigate to="/dashboard" replace />} />
+            {/* Dashboard Layout Routes */}
+            <Route path="/" element={<DashboardLayout />}>
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="admin/dashboard" element={<Navigate to="/dashboard" replace />} />
+                <Route path="inventory" element={<div className="text-white">Inventory Placeholder</div>} />
+                <Route path="transactions" element={<div className="text-white">Transactions Placeholder</div>} />
+                <Route path="sommelier" element={<div className="text-white">Sommelier AI Placeholder</div>} />
+              </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['staff']} />}>
