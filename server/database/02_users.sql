@@ -15,4 +15,6 @@ CREATE TABLE users (
 );
 
 INSERT INTO users (name, email, password, role, is_approved)
-VALUES ('Admin', 'admin@gmail.com', '$2b$10$GYFhlLA7W7tfHi6O.r5DfOEHibdkfX5djx0iZ/aDv2IdZ04wRxOU2', 'admin', true);
+VALUES 
+('Admin', 'admin@dineops.com', '$2b$10$DDFLn8GD4p4qBPPW9/MxSOogEIPG9Bz17qy8qdk69B2sp.fCcxUui', 'admin', true),
+('Kitchen Staff', 'kitchen@dineops.com', '$2b$10$fdmzGbk0qforbOb.jR9RBugvnf46.M5jeP1OB2mpZrA/IKhubafOK', 'kitchen', true);
