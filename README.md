@@ -81,6 +81,16 @@ node runSetup.js
 ```
 *If successful, the terminal will log a sequence confirming tables were created and seed data was injected.*
 
+`runSetup.js` now automatically runs every numbered SQL file in `server/database` in order, so new scripts such as `10_dashboard.sql` are picked up without changing the setup runner again.
+
+If you want to rebuild the demo data after the schema already exists, you can also run the separate reset helper:
+
+```bash
+cd server
+psql -d pos_cafe -f database/reset_and_seed.sql
+```
+This script clears transactional data, reseeds the sample orders and payments, and refreshes the dashboard materialized views.
+
 ---
 
 ### 6. Run the Application

@@ -4,6 +4,8 @@ const { Client } = require('pg');
 require('dotenv').config();
 
 const run = async () => {
+    const databaseDir = path.join(__dirname, 'database');
+
     // 1. Connect to default postgres to create database
     const client1 = new Client({
         user: process.env.PG_USER,
@@ -31,7 +33,7 @@ const run = async () => {
     }
 
     console.log("Running 01_database.sql...");
-    const dbSql = fs.readFileSync(path.join(__dirname, 'database', '01_database.sql'), 'utf-8');
+    const dbSql = fs.readFileSync(path.join(databaseDir, '01_database.sql'), 'utf-8');
     const statements = dbSql.split(';').filter(s => s.trim().length > 0);
     for (const stmt of statements) {
         await client1.query(stmt);
@@ -52,20 +54,17 @@ const run = async () => {
     console.log("Connecting to 'pos_cafe' database...");
     await client2.connect();
 
-    const scripts = [
-        '02_users.sql',
-        '03_structure.sql',
-        '04_products.sql',
-        '05_sessions.sql',
-        '06_orders.sql',
-        '07_payments.sql',
-        '08_indexes.sql',
-        '09_seed_data.sql'
-    ];
+    const scripts = fs.readdirSync(databaseDir)
+        .filter((file) => /^\d+_.+\.sql$/i.test(file) && file !== '01_database.sql')
+        .sort((left, right) => {
+            const leftNumber = parseInt(left, 10);
+            const rightNumber = parseInt(right, 10);
+            return leftNumber - rightNumber;
+        });
 
     for (const script of scripts) {
         console.log(`Running ${script}...`);
-        const sql = fs.readFileSync(path.join(__dirname, 'database', script), 'utf-8');
+        const sql = fs.readFileSync(path.join(databaseDir, script), 'utf-8');
         try {
             await client2.query(sql);
         } catch (err) {
