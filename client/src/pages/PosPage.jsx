@@ -166,13 +166,13 @@ const PosPage = () => {
     const clearCart = () => setCartItems([]);
 
     if (!hasSession) {
-        return <Navigate to="/sessions/select" replace />;
+        return <Navigate to="/sessions" replace />;
     }
 
     return (
         <div className="min-h-screen bg-linear-to-br from-[#050b17] via-[#0b1a30] to-[#0f2442] text-[#f8efe0] md:flex">
             <DashboardSidebar />
-            <main className="flex-1 p-4 sm:p-8">
+            <main className="relative z-10 flex-1 p-4 sm:p-8">
                 <header className="rounded-2xl border border-[#c9a14a]/20 bg-[#0a1628]/80 p-6 shadow-[0_16px_70px_rgba(0,0,0,0.35)]">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>

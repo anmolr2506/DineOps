@@ -7,25 +7,13 @@ class CategoryServiceError extends Error {
     }
 }
 
-const validateSessionAccess = async (userId, sessionId) => {
+const resolveMenuScopeSessionId = async () => {
+    const result = await pool.query('SELECT id FROM pos_sessions ORDER BY id ASC LIMIT 1');
+    const sessionId = result.rows[0]?.id;
     if (!Number.isInteger(sessionId) || sessionId <= 0) {
-        throw new CategoryServiceError('Invalid session_id.', 400);
+        throw new CategoryServiceError('No session available to anchor global menu scope.', 400);
     }
-
-    const query = `
-        SELECT us.id
-        FROM user_sessions us
-        JOIN pos_sessions ps ON ps.id = us.session_id
-        WHERE us.user_id = $1
-          AND us.session_id = $2
-          AND ps.status = 'active'
-        LIMIT 1;
-    `;
-
-    const result = await pool.query(query, [userId, sessionId]);
-    if (!result.rows[0]) {
-        throw new CategoryServiceError('User has no access to this session.', 403);
-    }
+    return sessionId;
 };
 
 const normalizeSearchTerm = (value) => {
@@ -84,8 +72,8 @@ const syncCategoryVariantGroups = async (categoryId, sessionId, variantGroupIds)
     }
 };
 
-const listCategories = async ({ userId, sessionId, search = '', page = 1, limit = 6 }) => {
-    await validateSessionAccess(userId, sessionId);
+const listCategories = async ({ search = '', page = 1, limit = 6 }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.max(1, Math.min(24, Number(limit) || 6));
@@ -161,8 +149,8 @@ const listCategories = async ({ userId, sessionId, search = '', page = 1, limit 
     `;
 
     const [result, countResult] = await Promise.all([
-        pool.query(query, [sessionId, searchTerm, safeLimit, offset]),
-        pool.query(countQuery, [sessionId, searchTerm])
+        pool.query(query, [menuSessionId, searchTerm, safeLimit, offset]),
+        pool.query(countQuery, [menuSessionId, searchTerm])
     ]);
 
     return {
@@ -175,8 +163,8 @@ const listCategories = async ({ userId, sessionId, search = '', page = 1, limit 
     };
 };
 
-const createCategory = async ({ userId, sessionId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const createCategory = async ({ userId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const name = payload.name?.trim();
     if (!name) {
@@ -187,7 +175,7 @@ const createCategory = async ({ userId, sessionId, payload }) => {
     const imageUrl = payload.image_url?.trim() || null;
     const status = payload.status === 'inactive' ? 'inactive' : 'active';
     const variantGroupIds = parseVariantGroupIds(payload.variant_group_ids);
-    await validateVariantGroupIdsForSession(sessionId, variantGroupIds);
+    await validateVariantGroupIdsForSession(menuSessionId, variantGroupIds);
 
     const query = `
         INSERT INTO categories (name, description, image_url, status, session_id, created_by)
@@ -196,28 +184,28 @@ const createCategory = async ({ userId, sessionId, payload }) => {
     `;
 
     try {
-        const result = await pool.query(query, [name, description, imageUrl, status, sessionId, userId]);
-        await syncCategoryVariantGroups(result.rows[0].id, sessionId, variantGroupIds);
+        const result = await pool.query(query, [name, description, imageUrl, status, menuSessionId, userId]);
+        await syncCategoryVariantGroups(result.rows[0].id, menuSessionId, variantGroupIds);
         result.rows[0].variant_group_ids = variantGroupIds;
         return result.rows[0];
     } catch (err) {
         if (err.code === '23505') {
-            throw new CategoryServiceError('Category name already exists in this session.', 409);
+            throw new CategoryServiceError('Category name already exists.', 409);
         }
         throw err;
     }
 };
 
-const updateCategory = async ({ userId, sessionId, categoryId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const updateCategory = async ({ categoryId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
         throw new CategoryServiceError('Invalid category id.', 400);
     }
 
-    const existing = await pool.query('SELECT id FROM categories WHERE id = $1 AND session_id = $2 LIMIT 1', [categoryId, sessionId]);
+    const existing = await pool.query('SELECT id FROM categories WHERE id = $1 AND session_id = $2 LIMIT 1', [categoryId, menuSessionId]);
     if (!existing.rows[0]) {
-        throw new CategoryServiceError('Category not found in this session.', 404);
+        throw new CategoryServiceError('Category not found.', 404);
     }
 
     const name = payload.name?.trim();
@@ -229,7 +217,7 @@ const updateCategory = async ({ userId, sessionId, categoryId, payload }) => {
     const imageUrl = payload.image_url?.trim() || null;
     const status = payload.status === 'inactive' ? 'inactive' : 'active';
     const variantGroupIds = parseVariantGroupIds(payload.variant_group_ids);
-    await validateVariantGroupIdsForSession(sessionId, variantGroupIds);
+    await validateVariantGroupIdsForSession(menuSessionId, variantGroupIds);
 
     const query = `
         UPDATE categories
@@ -242,20 +230,20 @@ const updateCategory = async ({ userId, sessionId, categoryId, payload }) => {
     `;
 
     try {
-        const result = await pool.query(query, [name, description, imageUrl, status, categoryId, sessionId]);
-        await syncCategoryVariantGroups(categoryId, sessionId, variantGroupIds);
+        const result = await pool.query(query, [name, description, imageUrl, status, categoryId, menuSessionId]);
+        await syncCategoryVariantGroups(categoryId, menuSessionId, variantGroupIds);
         result.rows[0].variant_group_ids = variantGroupIds;
         return result.rows[0];
     } catch (err) {
         if (err.code === '23505') {
-            throw new CategoryServiceError('Category name already exists in this session.', 409);
+            throw new CategoryServiceError('Category name already exists.', 409);
         }
         throw err;
     }
 };
 
-const deleteCategory = async ({ userId, sessionId, categoryId }) => {
-    await validateSessionAccess(userId, sessionId);
+const deleteCategory = async ({ categoryId }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
         throw new CategoryServiceError('Invalid category id.', 400);
@@ -263,16 +251,16 @@ const deleteCategory = async ({ userId, sessionId, categoryId }) => {
 
     const result = await pool.query(
         'DELETE FROM categories WHERE id = $1 AND session_id = $2 RETURNING id',
-        [categoryId, sessionId]
+        [categoryId, menuSessionId]
     );
 
     if (!result.rows[0]) {
-        throw new CategoryServiceError('Category not found in this session.', 404);
+        throw new CategoryServiceError('Category not found.', 404);
     }
 };
 
-const listProducts = async ({ userId, sessionId, categoryId, search = '' }) => {
-    await validateSessionAccess(userId, sessionId);
+const listProducts = async ({ categoryId, search = '' }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const safeCategoryId = Number(categoryId);
     if (categoryId !== undefined && categoryId !== null && (!Number.isInteger(safeCategoryId) || safeCategoryId <= 0)) {
@@ -282,11 +270,11 @@ const listProducts = async ({ userId, sessionId, categoryId, search = '' }) => {
     if (Number.isInteger(safeCategoryId) && safeCategoryId > 0) {
         const category = await pool.query(
             'SELECT id FROM categories WHERE id = $1 AND session_id = $2 LIMIT 1',
-            [safeCategoryId, sessionId]
+            [safeCategoryId, menuSessionId]
         );
 
         if (!category.rows[0]) {
-            throw new CategoryServiceError('Category not found in this session.', 404);
+            throw new CategoryServiceError('Category not found.', 404);
         }
     }
 
@@ -318,12 +306,12 @@ const listProducts = async ({ userId, sessionId, categoryId, search = '' }) => {
         ORDER BY created_at DESC NULLS LAST, id DESC;
     `;
 
-    const result = await pool.query(query, [sessionId, Number.isInteger(safeCategoryId) ? safeCategoryId : null, searchTerm]);
+    const result = await pool.query(query, [menuSessionId, Number.isInteger(safeCategoryId) ? safeCategoryId : null, searchTerm]);
     return result.rows;
 };
 
-const createProduct = async ({ userId, sessionId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const createProduct = async ({ userId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const categoryId = Number(payload.category_id);
     const name = payload.name?.trim();
@@ -349,11 +337,11 @@ const createProduct = async ({ userId, sessionId, payload }) => {
 
     const category = await pool.query(
         'SELECT id FROM categories WHERE id = $1 AND session_id = $2 LIMIT 1',
-        [categoryId, sessionId]
+        [categoryId, menuSessionId]
     );
 
     if (!category.rows[0]) {
-        throw new CategoryServiceError('Category not found in this session.', 404);
+        throw new CategoryServiceError('Category not found.', 404);
     }
 
     const description = payload.description?.trim() || '';
@@ -366,26 +354,26 @@ const createProduct = async ({ userId, sessionId, payload }) => {
     `;
 
     try {
-        const result = await pool.query(query, [categoryId, name, price, taxPercent, valueType, description, imageUrl, sessionId, userId]);
+        const result = await pool.query(query, [categoryId, name, price, taxPercent, valueType, description, imageUrl, menuSessionId, userId]);
         return result.rows[0];
     } catch (err) {
         if (err.code === '23505') {
-            throw new CategoryServiceError('Product name already exists in this session.', 409);
+            throw new CategoryServiceError('Product name already exists.', 409);
         }
         throw err;
     }
 };
 
-const updateProduct = async ({ userId, sessionId, productId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const updateProduct = async ({ productId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     if (!Number.isInteger(productId) || productId <= 0) {
         throw new CategoryServiceError('Invalid product id.', 400);
     }
 
-    const existing = await pool.query('SELECT id FROM products WHERE id = $1 AND session_id = $2 LIMIT 1', [productId, sessionId]);
+    const existing = await pool.query('SELECT id FROM products WHERE id = $1 AND session_id = $2 LIMIT 1', [productId, menuSessionId]);
     if (!existing.rows[0]) {
-        throw new CategoryServiceError('Product not found in this session.', 404);
+        throw new CategoryServiceError('Product not found.', 404);
     }
 
     const name = payload.name?.trim();
@@ -415,9 +403,9 @@ const updateProduct = async ({ userId, sessionId, productId, payload }) => {
             throw new CategoryServiceError('Invalid category_id.', 400);
         }
 
-        const category = await pool.query('SELECT id FROM categories WHERE id = $1 AND session_id = $2 LIMIT 1', [nextCategoryId, sessionId]);
+        const category = await pool.query('SELECT id FROM categories WHERE id = $1 AND session_id = $2 LIMIT 1', [nextCategoryId, menuSessionId]);
         if (!category.rows[0]) {
-            throw new CategoryServiceError('Category not found in this session.', 404);
+            throw new CategoryServiceError('Category not found.', 404);
         }
     }
 
@@ -437,11 +425,11 @@ const updateProduct = async ({ userId, sessionId, productId, payload }) => {
     `;
 
     try {
-        const result = await pool.query(query, [name, price, taxPercent, valueType, description, imageUrl, isAvailable, nextCategoryId, productId, sessionId]);
+        const result = await pool.query(query, [name, price, taxPercent, valueType, description, imageUrl, isAvailable, nextCategoryId, productId, menuSessionId]);
         return result.rows[0];
     } catch (err) {
         if (err.code === '23505') {
-            throw new CategoryServiceError('Product name already exists in this session.', 409);
+            throw new CategoryServiceError('Product name already exists.', 409);
         }
         throw err;
     }

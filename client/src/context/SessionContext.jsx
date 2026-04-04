@@ -83,6 +83,11 @@ export const SessionProvider = ({ children }) => {
         return response.data.session;
     };
 
+    const updateSessionPaymentSettings = async (sessionId, payload) => {
+        const response = await axios.patch(`http://localhost:5000/api/sessions/${sessionId}/payment-settings`, payload);
+        return response.data.session;
+    };
+
     const loadCurrentSession = async () => {
         const response = await axios.get('http://localhost:5000/api/sessions/current');
         const session = response.data.session;
@@ -106,6 +111,7 @@ export const SessionProvider = ({ children }) => {
         joinSession,
         createSession,
         stopSession,
+        updateSessionPaymentSettings,
         loadCurrentSession,
         clearSession,
         hasSelectedSession: Boolean(localStorage.getItem('session_id')),

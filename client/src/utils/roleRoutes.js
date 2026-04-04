@@ -1,6 +1,6 @@
 export const getRoleHomeRoute = (role) => {
-    if (role === 'admin') return '/dashboard';
-    if (role === 'staff') return '/pos';
-    if (role === 'kitchen') return '/kitchen';
+    if (role === 'admin') return '/session-dashboard';
+    if (role === 'staff') return '/session-dashboard';
+    if (role === 'kitchen') return '/session-dashboard';
     return '/';
 };

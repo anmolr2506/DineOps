@@ -7,7 +7,11 @@ const getActiveSessions = async () => {
             COALESCE(name, 'Session #' || id::text) AS name,
             start_time,
             end_time,
-            status
+            status,
+            allow_cash,
+            allow_digital,
+            allow_upi,
+            upi_id
         FROM pos_sessions
         WHERE status = 'active'
         ORDER BY start_time DESC;
@@ -23,7 +27,11 @@ const getActiveSessionById = async (sessionId) => {
             COALESCE(name, 'Session #' || id::text) AS name,
             start_time,
             end_time,
-            status
+            status,
+            allow_cash,
+            allow_digital,
+            allow_upi,
+            upi_id
         FROM pos_sessions
         WHERE id = $1 AND status = 'active'
         LIMIT 1;
@@ -52,7 +60,11 @@ const getCurrentSessionForUser = async (userId) => {
             ps.start_time,
             ps.end_time,
             ps.status,
-            COALESCE(ps.name, 'Session #' || ps.id::text) AS name
+            COALESCE(ps.name, 'Session #' || ps.id::text) AS name,
+            ps.allow_cash,
+            ps.allow_digital,
+            ps.allow_upi,
+            ps.upi_id
         FROM user_sessions us
         JOIN pos_sessions ps ON ps.id = us.session_id
         WHERE us.user_id = $1
@@ -74,7 +86,11 @@ const createSession = async ({ openedBy, name }) => {
             COALESCE(name, 'Session #' || id::text) AS name,
             start_time,
             end_time,
-            status;
+            status,
+            allow_cash,
+            allow_digital,
+            allow_upi,
+            upi_id;
     `;
     const result = await pool.query(query, [openedBy, name]);
     return result.rows[0];
@@ -90,10 +106,38 @@ const stopSessionById = async (sessionId) => {
             COALESCE(name, 'Session #' || id::text) AS name,
             start_time,
             end_time,
-            status;
+                status,
+                allow_cash,
+                allow_digital,
+                allow_upi,
+                upi_id;
     `;
 
     const result = await pool.query(query, [sessionId]);
+    return result.rows[0] || null;
+};
+
+const updateSessionPaymentSettings = async ({ sessionId, allowCash, allowDigital, allowUpi, upiId }) => {
+    const query = `
+        UPDATE pos_sessions
+        SET allow_cash = $2,
+            allow_digital = $3,
+            allow_upi = $4,
+            upi_id = $5
+        WHERE id = $1
+        RETURNING
+            id,
+            COALESCE(name, 'Session #' || id::text) AS name,
+            start_time,
+            end_time,
+            status,
+            allow_cash,
+            allow_digital,
+            allow_upi,
+            upi_id;
+    `;
+
+    const result = await pool.query(query, [sessionId, allowCash, allowDigital, allowUpi, upiId]);
     return result.rows[0] || null;
 };
 
@@ -103,5 +147,6 @@ module.exports = {
     upsertUserSession,
     getCurrentSessionForUser,
     createSession,
-    stopSessionById
+    stopSessionById,
+    updateSessionPaymentSettings
 };

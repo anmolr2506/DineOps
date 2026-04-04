@@ -16,7 +16,7 @@ function Login() {
         setError(null);
         try {
             await login(email, password);
-            navigate('/sessions/select');
+            navigate('/sessions');
         } catch (err) {
             setError(err.response?.data?.error || "Login Failed");
         } finally {

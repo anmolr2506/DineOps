@@ -78,10 +78,30 @@ const stopSession = async (req, res) => {
     }
 };
 
+const updatePaymentSettings = async (req, res) => {
+    try {
+        const sessionId = Number(req.params.sessionId);
+        const updatedSession = await sessionService.updateSessionPaymentSettings({
+            sessionId,
+            payload: req.body || {},
+            io: req.app.locals.io
+        });
+
+        return res.status(200).json({
+            message: 'Session payment settings updated successfully.',
+            session: updatedSession
+        });
+    } catch (err) {
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({ error: err.message || 'Failed to update session payment settings.' });
+    }
+};
+
 module.exports = {
     getActiveSessions,
     joinSession,
     getCurrentSession,
     createSession,
-    stopSession
+    stopSession,
+    updatePaymentSettings
 };

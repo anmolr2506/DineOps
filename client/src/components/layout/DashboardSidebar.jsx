@@ -1,28 +1,29 @@
-import { NavLink } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const menuByRole = {
     admin: [
-        { label: 'Dashboard', to: '/dashboard' },
-        { label: 'Menu', to: '/menu?tab=products' }
+        { label: 'Session Dashboard', to: '/session-dashboard' },
+        { label: 'Terminal', to: '/terminal' }
     ],
     staff: [
-        { label: 'POS', to: '/pos' },
-        { label: 'Menu', to: '/menu?tab=products' }
+        { label: 'Session Dashboard', to: '/session-dashboard' },
+        { label: 'Terminal', to: '/terminal' }
     ],
     kitchen: [
-        { label: 'Kitchen', to: '/kitchen' },
-        { label: 'Menu', to: '/menu?tab=products' }
+        { label: 'Session Dashboard', to: '/session-dashboard' },
+        { label: 'Kitchen', to: '/kitchen' }
     ]
 };
 
 const DashboardSidebar = () => {
     const { user, logout } = useAuth();
+    const location = useLocation();
     const role = user?.role || 'staff';
     const menuItems = menuByRole[role] || [];
 
     return (
-        <aside className="w-full border-b border-[#d0aa64]/20 bg-[#081327]/95 p-4 md:h-screen md:w-64 md:border-b-0 md:border-r">
+        <aside className="relative z-20 w-full border-b border-[#d0aa64]/20 bg-[#081327]/95 p-4 md:h-screen md:w-64 md:border-b-0 md:border-r">
             <div className="mb-6 flex items-center justify-between md:block">
                 <div>
                     <h1 className="text-3xl text-[#f8efe0]" style={{ fontFamily: '"Great Vibes", cursive' }}>
@@ -34,19 +35,18 @@ const DashboardSidebar = () => {
 
             <nav className="space-y-2">
                 {menuItems.map((item) => (
-                    <NavLink
+                    <button
                         key={item.to}
-                        to={item.to}
-                        className={({ isActive }) =>
-                            `block rounded-lg px-4 py-3 text-sm font-medium transition ${
-                                isActive
-                                    ? 'bg-linear-to-r from-[#c9a14a] to-[#e1bf7f] text-[#1f1506]'
-                                    : 'text-[#f8efe0]/75 hover:bg-white/5 hover:text-[#f8efe0]'
-                            }`
-                        }
+                        type="button"
+                        onClick={() => window.location.assign(item.to)}
+                        className={`block w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
+                            location.pathname === item.to
+                                ? 'bg-linear-to-r from-[#c9a14a] to-[#e1bf7f] text-[#1f1506]'
+                                : 'text-[#f8efe0]/75 hover:bg-white/5 hover:text-[#f8efe0]'
+                        }`}
                     >
                         {item.label}
-                    </NavLink>
+                    </button>
                 ))}
             </nav>
 

@@ -1,14 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../context/SessionContext';
 
 const SessionBadge = () => {
-    const { currentSession } = useSession();
+    const navigate = useNavigate();
+    const { currentSession, clearSession } = useSession();
 
     if (!currentSession) {
         return (
             <div className="mb-4 rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 No active session selected.
-                <Link to="/sessions/select" className="ml-2 font-semibold underline">
+                <Link to="/sessions" className="ml-2 font-semibold underline">
                     Select session
                 </Link>
             </div>
@@ -31,9 +32,16 @@ const SessionBadge = () => {
                     <span className="rounded-full border border-emerald-300/50 bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200">
                         {currentSession.status}
                     </span>
-                    <Link to="/sessions/select" className="text-sm font-semibold text-[#e5c48d] underline underline-offset-4">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            clearSession();
+                            navigate('/sessions');
+                        }}
+                        className="text-sm font-semibold text-[#e5c48d] underline underline-offset-4"
+                    >
                         Change Session
-                    </Link>
+                    </button>
                 </div>
             </div>
         </div>
