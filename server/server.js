@@ -25,6 +25,8 @@ const variantRoutes = require('./routes/variant.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const userRoutes = require('./routes/user.routes');
 const floorPlanRoutes = require('./routes/floorPlan.routes');
+const customerReservationRoutes = require('./routes/customerReservation.routes');
+const { cleanupExpiredReservationsAndHolds } = require('./services/customerReservation.service');
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api', categoryRoutes);
@@ -32,6 +34,7 @@ app.use('/api/variants', variantRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', floorPlanRoutes);
+app.use('/api', customerReservationRoutes);
 
 io.on('connection', (socket) => {
   socket.on('join_session_room', (sessionId) => {
@@ -45,6 +48,15 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const RESERVATION_CLEANUP_INTERVAL_MS = 30000;
+
+setInterval(async () => {
+  try {
+    await cleanupExpiredReservationsAndHolds(io);
+  } catch (error) {
+    console.error('Reservation cleanup failed:', error.message);
+  }
+}, RESERVATION_CLEANUP_INTERVAL_MS);
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

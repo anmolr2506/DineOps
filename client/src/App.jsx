@@ -4,11 +4,13 @@ import { AuthProvider } from './context/AuthContext';
 import { SessionProvider } from './context/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-import LandingPage from './pages/LandingPage';
+import HomePage from './pages/HomePage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import CustomerOrderPage from './pages/CustomerOrderPage';
+import CustomerReservationPage from './pages/CustomerReservationPage';
 import WaitingApproval from './pages/WaitingApproval';
 import GlobalDashboard from './pages/GlobalDashboard';
 import SessionDashboard from './pages/SessionDashboard';
@@ -24,7 +26,10 @@ function App() {
       <SessionProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<HomePage />} />
+
+            <Route path="/customer/order" element={<CustomerOrderPage />} />
+            <Route path="/customer/reservation" element={<CustomerReservationPage />} />
 
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

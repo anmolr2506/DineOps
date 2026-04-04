@@ -16,5 +16,6 @@ router.put('/tables/:id', verifyToken, requireRole(['admin']), floorPlanControll
 router.delete('/tables/:id', verifyToken, requireRole(['admin']), floorPlanController.deleteTable);
 router.post('/tables/duplicate/:id', verifyToken, requireRole(['admin']), floorPlanController.duplicateTable);
 router.put('/tables/:id/status', verifyToken, requireRole(['admin', 'staff']), floorPlanController.updateTableStatus);
+router.delete('/tables/:id/bookings', verifyToken, requireRole(['admin']), floorPlanController.clearTableBookings);
 
 module.exports = router;
