@@ -18,6 +18,10 @@ import SessionSelection from './pages/SessionSelection';
 import FloorPlanPage from './pages/FloorPlanPage';
 import MenuPage from './pages/MenuPage';
 import PosPage from './pages/PosPage';
+import POSTerminal from './pages/POSTerminal';
+import PaymentPage from './pages/PaymentPage';
+import CustomersPage from './pages/CustomersPage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
 const Unauthorized = () => <div className="p-10 text-red-500 font-bold text-2xl">401 Unauthorized</div>;
 
 function App() {
@@ -61,9 +65,16 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} />}>
-              <Route path="/terminal" element={<PosPage />} />
+              <Route path="/terminal" element={<POSTerminal />} />
+              <Route path="/terminal/payment" element={<PaymentPage />} />
+              <Route path="/terminal/legacy" element={<PosPage />} />
               <Route path="/pos" element={<Navigate to="/terminal" replace />} />
               <Route path="/staff/dashboard" element={<Navigate to="/pos" replace />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['admin']} requireSession={false} />}>
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/order-history" element={<OrderHistoryPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['kitchen']} />}>

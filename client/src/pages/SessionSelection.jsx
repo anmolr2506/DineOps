@@ -231,6 +231,24 @@ const SessionSelection = () => {
                             >
                                 Floor Plan
                             </button>
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/customers')}
+                                    className="rounded-lg border border-[#d4b173]/45 bg-[#0d1d35] px-5 py-3 text-sm font-semibold uppercase tracking-wide text-[#f5dfb3] transition hover:bg-[#112443]"
+                                >
+                                    View Customers
+                                </button>
+                            )}
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/order-history')}
+                                    className="rounded-lg border border-[#d4b173]/45 bg-[#0d1d35] px-5 py-3 text-sm font-semibold uppercase tracking-wide text-[#f5dfb3] transition hover:bg-[#112443]"
+                                >
+                                    View Order History
+                                </button>
+                            )}
                             {canViewGlobalDashboard && (
                                 <button
                                     type="button"

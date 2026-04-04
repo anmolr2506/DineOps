@@ -1,191 +1,174 @@
-# DineOps
+﻿# DineOps - Premium POS & Restaurant Management System
 
-Restaurant POS and table-reservation platform built with React, Express, PostgreSQL, and Socket.IO.
+DineOps is a comprehensive Restaurant POS, kitchen display, and table-reservation platform built with React, Node.js, Express, PostgreSQL, and Socket.IO. 
 
-This README is written for team onboarding so every teammate can create the exact same database structure and run the app locally.
+This guide provides step-by-step instructions for teammates to set up the exact same environment and database structure on their local machines.
+
+## 🎯 Key Features
+- **Real-time POS Terminal:** Floor and table selection, variant-aware cart, and live order syncing.
+- **Payment Processing:** Cash, Physical Card, and UPI with live Razorpay Integration.
+- **Live Kitchen Sync:** WebSockets push approved/paid orders directly to the Kitchen Dashboard.
+- **Table Management & Reservations:** Visual floor plans with live hold/reservation statuses.
+- **Admin/Session Controls:** Cash-drawer tracking and dynamic payment capability limits per session.
+
+---
 
 ## 1. Prerequisites
 
-- Node.js 18+
-- npm 9+
-- PostgreSQL 14+
-- Git
+Before cloning the repository, ensure you have the following installed:
+- **Node.js** (v18+ recommended)
+- **PostgreSQL** (v14+ recommended)
+- **Git**
 
-Optional:
-- pgAdmin (easy DB inspection)
+*Optional but recommended:*
+- **pgAdmin** or **DBeaver** for easy database inspection.
 
-## 2. Clone and Install
+---
 
-From project root:
+## 2. Clone and Install Dependencies
 
-```bash
+Open your terminal and run:
+
+`ash
+# 1. Clone the repository
 git clone https://github.com/anmolr2506/DineOps.git
 cd DineOps
-npm --prefix server install
-npm --prefix client install
-```
 
-## 3. Environment Setup
+# 2. Install Backend Dependencies
+cd server
+npm install
 
-Create this file:
+# 3. Install Frontend Dependencies
+cd ../client
+npm install
+`
 
-```text
-server/.env
-```
+---
 
-Use this template:
+## 3. Environment Variables (.env)
 
-```env
+You need to configure the backend environment variables. Create a .env file inside the server/ directory:
+
+`ash
+# On Windows (Command Prompt)
+cd server
+type NUL > .env
+
+# On Mac/Linux
+cd server
+touch .env
+`
+
+Open server/.env and paste the following template. **Update the PG_PASSWORD to match your local PostgreSQL password.**
+
+`env
+# Server Config
 PORT=5000
+CLIENT_ORIGIN=http://localhost:5173
+
+# Database Credentials
 PG_USER=postgres
-PG_PASSWORD=your_postgres_password
+PG_PASSWORD=your_postgres_password_here
 PG_HOST=localhost
 PG_PORT=5432
 PG_DATABASE=pos_cafe
-JWT_SECRET=replace_with_a_long_random_secret
 
-# Optional mail configuration (forgot password flow)
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
-EMAIL_FROM=
-```
+# Authentication
+JWT_SECRET=your_super_secret_jwt_key_here
 
-Notes:
-- Use the exact PG_* names above.
-- Keep PG_DATABASE as pos_cafe for consistency with setup scripts.
+# Payment Gateway (Razorpay)
+# Ask the project lead for the test/prod keys if you need to test live transactions
+RAZORPAY_KEY_ID=rzp_test_SZYe0hBnQVRUKI
+RAZORPAY_KEY_SECRET=5HUFL1E3ENW4U4PIGfNaec32
 
-## 4. Create Exact Database Structure (Fresh Machine)
+# Email / SMTP Configuration (For password resets)
+SMTP_HOST=smtp.ethereal.email
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+`
 
-Run from repository root:
+---
 
-```bash
+## 4. Database Initialization (Important)
+
+To ensure your local database exactly matches the team's structure (including all new tables for POS, variants, and Razorpay payments), we use automated setup scripts.
+
+From the **project root directory** (DineOps/), run the fresh setup script:
+
+`ash
 node server/runSetup.js
-```
+`
 
-What this command does:
-1. Connects to postgres database.
-2. Terminates active connections to pos_cafe.
-3. Drops and recreates pos_cafe using [server/database/01_database.sql](server/database/01_database.sql).
-4. Executes all numbered SQL files in [server/database](server/database) in ascending order (except 01, which runs first explicitly).
+**What this does:**
+1. Connects to the default postgres database.
+2. Drops any existing pos_cafe database to ensure a clean slate.
+3. Recreates the pos_cafe database.
+4. Executes all numbered SQL files located in server/database/ in sequential order.
+5. Injects default seed data (admin accounts, default floors, tables, categories, menu items, and variant groups).
 
-Current ordered SQL pipeline:
-1. 01_database.sql
-2. 02_users.sql
-3. 03_structure.sql
-4. 04_products.sql
-5. 05_sessions.sql
-6. 06_orders.sql
-7. 07_payments.sql
-8. 08_indexes.sql
-9. 09_seed_data.sql
-10. 10_dashboard.sql
-11. 11_session_management.sql
-12. 12_session_admin_controls.sql
-13. 13_category_session_isolation.sql
-14. 14_menu_variant_groups.sql
-15. 15_session_payment_settings.sql
-16. 16_floor_plan_session_scope.sql
-17. 17_table_reservations.sql
+*Note: If you already have a database and just pulled new code, you can alternatively run 
+ode server/updateDB.js to only apply missing migrations without dropping your data.*
 
-This gives all teammates the same schema, constraints, and seed baseline.
+---
 
-## 5. Migration Path (Existing Local DB)
+## 5. Running the Application
 
-If a teammate already has an older local database and only needs patch updates:
+You will need two separate terminal windows/tabs to run the stack.
 
-```bash
-node server/updateDB.js
-```
+**Terminal 1 (Backend - Node/Express/Socket.IO):**
+`ash
+cd server
+npm run dev
+# Server should output: "Server running on port 5000"
+`
 
-Use this only for upgrading an existing DB. For guaranteed identical structure, use step 4 (runSetup).
+**Terminal 2 (Frontend - React/Vite):**
+`ash
+cd client
+npm run dev
+# Frontend should be accessible at: http://localhost:5173
+`
 
-## 6. Start the Project
+---
 
-Terminal 1 (backend):
+## 6. Default Login Credentials
 
-```bash
-npm --prefix server run dev
-```
+The unSetup.js script automatically creates the following default accounts. Use them to log in at http://localhost:5173/login:
 
-Terminal 2 (frontend):
+- **Admin Account**
+  - **Email:** dmin@dineops.com
+  - **Password:** dmin123
+- **Kitchen Account**
+  - **Email:** kitchen@dineops.com
+  - **Password:** kitchen123
 
-```bash
-npm --prefix client run dev
-```
+*(Staff accounts can be created by the Admin via the Users dashboard or via public signup requiring Admin approval).*
 
-Open:
-- Frontend: http://localhost:5173
-- Backend health: http://localhost:5000
+---
 
-## 7. Seeded Login Accounts
+## 7. Verifying Your Setup
 
-From [server/database/02_users.sql](server/database/02_users.sql):
+Once logged in as Admin, verify the following to ensure your setup is complete:
+1. **Open a Session:** Go to **Sessions**, enter a starting float, and open a new session. Ensure you enable Cash, Card, and UPI.
+2. **Terminal:** Navigate to the **Terminal**, select a Floor and Table, and add an item (e.g., Pizza with variants).
+3. **Payment:** Click **Finalize & Go To Payment**. Test the dummy Razorpay UI under the UPI section or process a Cash order.
+4. **Kitchen Sync:** Open a private browsing window, log in as Kitchen, and verify the paid order appears on the Kitchen Dashboard automatically.
 
-- Admin
-	- Email: admin@dineops.com
-	- Password: admin123
-- Kitchen
-	- Email: kitchen@dineops.com
-	- Password: kitchen123
+---
 
-## 8. Verify DB Matches Team Standard
+## 8. Troubleshooting Common Setup Issues
 
-Run these checks in PostgreSQL:
+**1. "database pos_cafe is being accessed by other users"**
+- *Fix:* Close pgAdmin, DBeaver, or any other SQL query tabs connected to the pos_cafe database. Then re-run 
+ode server/runSetup.js.
 
-```sql
--- Must return one row: pos_cafe
-SELECT datname FROM pg_database WHERE datname = 'pos_cafe';
+**2. "password authentication failed for user postgres"**
+- *Fix:* Double-check your PG_PASSWORD in server/.env. Verify that the PostgreSQL service is running on your machine.
 
--- Must include these tables
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-	AND table_name IN ('users', 'floors', 'tables', 'table_reservations', 'table_holds')
-ORDER BY table_name;
+**3. "Frontend starts but API calls/Login fail"**
+- *Fix:* Ensure the background terminal running 
+pm run dev in the server folder hasn't crashed. Verify it's running on port 5000.
 
--- Optional quick seed checks
-SELECT email, role, approval_status FROM users ORDER BY id;
-SELECT name FROM floors ORDER BY id;
-SELECT floor_id, table_number, seats FROM tables ORDER BY floor_id, table_number;
-```
-
-## 9. Production Build Check
-
-```bash
-npm --prefix client run build
-```
-
-If PowerShell execution policy blocks npm scripts, run with cmd wrapper:
-
-```bash
-cmd /c "cd /d D:\path\to\DineOps && npm --prefix client run build"
-```
-
-## 10. Common Setup Issues
-
-1. database is being accessed by other users
-- Close pgAdmin/query tabs connected to pos_cafe.
-- Re-run node server/runSetup.js.
-
-2. authentication failed for user
-- Verify PG_USER and PG_PASSWORD in server/.env.
-- Ensure PostgreSQL service is running.
-
-3. frontend starts but API calls fail
-- Confirm backend is running on PORT from server/.env.
-- Confirm client is calling http://localhost:5000.
-
-4. teammate has stale local schema
-- Run node server/runSetup.js (preferred for exact parity).
-
-## 11. Team Onboarding Checklist
-
-1. Clone repository.
-2. Install server and client dependencies.
-3. Create server/.env.
-4. Run node server/runSetup.js.
-5. Start backend and frontend.
-6. Login with seeded admin.
-7. Confirm floor/table/reservation data is visible.
+**4. Razorpay checkout window doesn't open**
+- *Fix:* Make sure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are correctly set in your .env file without quotes.

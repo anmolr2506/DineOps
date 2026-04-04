@@ -26,6 +26,8 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const userRoutes = require('./routes/user.routes');
 const floorPlanRoutes = require('./routes/floorPlan.routes');
 const customerReservationRoutes = require('./routes/customerReservation.routes');
+const posTerminalRoutes = require('./routes/posTerminal.routes');
+const paymentRoutes = require('./routes/payment.routes');
 const { cleanupExpiredReservationsAndHolds } = require('./services/customerReservation.service');
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
@@ -35,6 +37,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', floorPlanRoutes);
 app.use('/api', customerReservationRoutes);
+app.use('/api', posTerminalRoutes);
+app.use('/api', paymentRoutes);
 
 io.on('connection', (socket) => {
   socket.on('join_session_room', (sessionId) => {
