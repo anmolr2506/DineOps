@@ -16,6 +16,20 @@ const run = async () => {
     console.log("Connecting to default 'postgres' database...");
     await client1.connect();
 
+    // Terminate all connections to pos_cafe database
+    console.log("Terminating all connections to 'pos_cafe' database...");
+    try {
+        await client1.query(`
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = 'pos_cafe'
+            AND pid <> pg_backend_pid();
+        `);
+    } catch (err) {
+        // Database might not exist yet, that's okay
+        console.log("(Database doesn't exist yet or already cleaned up)");
+    }
+
     console.log("Running 01_database.sql...");
     const dbSql = fs.readFileSync(path.join(__dirname, 'database', '01_database.sql'), 'utf-8');
     const statements = dbSql.split(';').filter(s => s.trim().length > 0);

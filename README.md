@@ -38,7 +38,7 @@ npm install
 
 ### 3. Database Setup (PostgreSQL)
 1. Open pgAdmin (or your preferred Postgres CLI).
-2. Create a brand new database and name it `dineops`.
+2. Create a brand new database and name it `pos_cafe`.
 3. *(The tables and default data will be generated automatically in the next few steps, no manual queries required!)*
 
 ---
@@ -52,11 +52,11 @@ Copy the following structure into it and replace the values with your local mach
 PORT=5000
 
 # Database Credentials
-DB_USER=postgres
-DB_PASSWORD=your_pgadmin_password  # <-- CHANGE THIS TO YOUR LOCAL PG PASSWORD!
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=dineops
+PG_USER=postgres
+PG_PASSWORD=your_pgadmin_password  # <-- CHANGE THIS TO YOUR LOCAL PG PASSWORD!
+PG_HOST=localhost
+PG_PORT=5432
+PG_DATABASE=pos_cafe
 
 # JWT Authentication
 JWT_SECRET=your_super_secret_jwt_key_here
@@ -68,10 +68,12 @@ SMTP_USER=your_smtp_user
 SMTP_PASS=your_smtp_password
 ```
 
+⚠️ **Important:** Use `PG_USER`, `PG_PASSWORD`, `PG_HOST`, `PG_PORT`, and `PG_DATABASE` as the variable names (not `DB_*`). The application code expects these specific names.
+
 ---
 
 ### 5. Initialize & Seed the Database
-Once your `.env` file is set up and the `dineops` database exists, run the automated setup script to build your tables and seed the initial users/data:
+Once your `.env` file is set up and the `pos_cafe` database exists, run the automated setup script to build your tables and seed the initial users/data:
 
 ```bash
 cd server
@@ -114,3 +116,49 @@ You can immediately log in using the following seeded credentials:
 - **Backend:** Node.js, Express.js
 - **Database:** PostgreSQL (pg)
 - **Security:** bcrypt (hashing), jsonwebtoken (auth), nodemailer (email service)
+
+---
+
+## 🛠️ Troubleshooting
+
+### Issue 1: `runSetup.js` fails with "error: database is being accessed by other users"
+**Cause:** There are active connections to the `pos_cafe` database preventing it from being dropped and recreated.
+
+**Solution:**
+- The `runSetup.js` script now automatically terminates all existing connections before setting up the database.
+- If you still get this error, close any pgAdmin connections or database clients pointing to `pos_cafe` and try again.
+
+---
+
+### Issue 2: Environment variables not recognized / Connection fails
+**Cause:** Incorrect `.env` variable names. The code expects `PG_*` variables, not `DB_*`.
+
+**Solution:**
+Ensure your `.env` file uses these exact variable names:
+```env
+PG_USER=postgres
+PG_PASSWORD=your_password
+PG_HOST=localhost
+PG_PORT=5432
+PG_DATABASE=pos_cafe
+```
+
+❌ **Do NOT use:** `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`
+
+---
+
+### Issue 3: `runSetup.js` fails to execute
+**Solution:**
+- Make sure you're in the `server` directory: `cd server`
+- Verify Node.js is installed: `node --version`
+- Verify PostgreSQL is running and accessible
+- Check that your `.env` file is in the `server` directory
+- If you still have issues, manually create the `pos_cafe` database in pgAdmin first, then run `node runSetup.js`
+
+---
+
+### Issue 4: Port 5000 already in use
+**Cause:** Another application is using port 5000.
+
+**Solution:**
+Update the `PORT` variable in your `.env` file to a different port (e.g., 5001, 5002) or kill the process using port 5000.
