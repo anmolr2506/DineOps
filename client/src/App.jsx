@@ -1,12 +1,9 @@
 import React from 'react'
+import LandingPage from './pages/LandingPage'
 
 function App() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold text-blue-500">
-  Tailwind Working 🚀
-      </h1>
-    </div>
+    <LandingPage />
   )
 }
 
