@@ -9,3 +9,4 @@
 \i 07_payments.sql
 \i 08_indexes.sql
 \i 09_seed_data.sql
+\i 10_dashboard.sql
