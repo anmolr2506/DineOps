@@ -29,10 +29,7 @@ async function createTransporter() {
 
 exports.signup = async (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
-        if (!['admin', 'staff', 'kitchen'].includes(role)) {
-            return res.status(400).json({ error: "Invalid role." });
-        }
+        const { name, email, password } = req.body;
         const existing = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         if (existing.rows.length > 0) {
             return res.status(400).json({ error: "Email already exists." });
@@ -40,10 +37,10 @@ exports.signup = async (req, res) => {
         const hashed = await bcrypt.hash(password, 10);
 
         const newUser = await pool.query(
-            "INSERT INTO users (name, email, password, role, is_approved) VALUES ($1, $2, $3, $4, true) RETURNING id, name, email, role",
-            [name, email, hashed, role]
+            "INSERT INTO users (name, email, password, role, approval_status, is_approved) VALUES ($1, $2, $3, NULL, 'pending', false) RETURNING id, name, email, role, approval_status",
+            [name, email, hashed]
         );
-        res.status(201).json({ message: "User created", user: newUser.rows[0] });
+        res.status(201).json({ message: "Account created. Waiting for admin approval.", user: newUser.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -59,8 +56,10 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
-        const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
-        res.json({ token, role: user.role, name: user.name });
+        const approvalStatus = user.approval_status || (user.is_approved ? 'approved' : 'pending');
+
+        const token = jwt.sign({ id: user.id, role: user.role, email: user.email, approval_status: approvalStatus }, JWT_SECRET, { expiresIn: '1d' });
+        res.json({ token, role: user.role, name: user.name, approval_status: approvalStatus });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -117,7 +116,10 @@ exports.resetPassword = async (req, res) => {
 
 exports.getMe = async (req, res) => {
     try {
-        const result = await pool.query("SELECT id, name, email, role FROM users WHERE id = $1", [req.user.id]);
+        const result = await pool.query(
+            "SELECT id, name, email, role, COALESCE(approval_status, CASE WHEN is_approved THEN 'approved' ELSE 'pending' END) AS approval_status FROM users WHERE id = $1",
+            [req.user.id]
+        );
         res.json({ user: result.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useSession } from '../context/SessionContext';
 import { getRoleHomeRoute } from '../utils/roleRoutes';
+import ApprovalPanel from '../components/approval/ApprovalPanel';
 
 const SessionSelection = () => {
     const navigate = useNavigate();
@@ -33,6 +35,19 @@ const SessionSelection = () => {
         upi_id: ''
     });
     const [savingSettings, setSavingSettings] = useState(false);
+    const [approvalPanelOpen, setApprovalPanelOpen] = useState(false);
+    const [pendingUsers, setPendingUsers] = useState([]);
+    const [pendingCount, setPendingCount] = useState(0);
+
+    const loadApprovalRequests = async () => {
+        if (!isAdmin) return;
+        const [pendingResponse, countResponse] = await Promise.all([
+            axios.get('http://localhost:5000/api/users/pending'),
+            axios.get('http://localhost:5000/api/users/pending/count')
+        ]);
+        setPendingUsers(pendingResponse.data.users || []);
+        setPendingCount(countResponse.data.pending_count || 0);
+    };
 
     const loadSessions = async () => {
         try {
@@ -52,6 +67,14 @@ const SessionSelection = () => {
         clearSession();
         loadSessions();
     }, []);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        loadApprovalRequests().catch((err) => {
+            setError(err.response?.data?.error || 'Failed to load approval requests.');
+        });
+    }, [isAdmin]);
 
     const handleJoin = async (sessionId) => {
         try {
@@ -177,6 +200,25 @@ const SessionSelection = () => {
                             >
                                 Menu Management
                             </button>
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setApprovalPanelOpen(true);
+                                        loadApprovalRequests().catch((err) => {
+                                            setError(err.response?.data?.error || 'Failed to load approval requests.');
+                                        });
+                                    }}
+                                    className="relative rounded-lg border border-[#d4b173]/45 bg-[#0d1d35] px-5 py-3 text-sm font-semibold uppercase tracking-wide text-[#f5dfb3] transition hover:bg-[#112443]"
+                                >
+                                    Approval Requests
+                                    {pendingCount > 0 && (
+                                        <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#d4b173] px-2 text-xs font-bold text-[#1d1202]">
+                                            {pendingCount}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
                             {canViewGlobalDashboard && (
                                 <button
                                     type="button"
@@ -288,6 +330,13 @@ const SessionSelection = () => {
                         ))}
                     </div>
                 )}
+
+                <ApprovalPanel
+                    isOpen={approvalPanelOpen}
+                    onClose={() => setApprovalPanelOpen(false)}
+                    pendingUsers={pendingUsers}
+                    onUpdated={loadApprovalRequests}
+                />
 
                 {settingsSession && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

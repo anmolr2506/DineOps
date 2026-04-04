@@ -38,13 +38,22 @@ export const AuthProvider = ({ children }) => {
         const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
         setToken(res.data.token);
         localStorage.setItem('token', res.data.token);
-        setUser({ role: res.data.role, name: res.data.name });
+        setUser({ role: res.data.role, name: res.data.name, approval_status: res.data.approval_status });
         return res.data;
     };
 
-    const register = async (name, email, password, role) => {
-        const res = await axios.post('http://localhost:5000/api/auth/signup', { name, email, password, role });
+    const register = async (name, email, password) => {
+        const res = await axios.post('http://localhost:5000/api/auth/signup', { name, email, password });
         return res.data;
+    };
+
+    const checkApprovalStatus = async () => {
+        const res = await axios.get('http://localhost:5000/api/users/my-approval-status');
+        setUser((current) => ({
+            ...(current || {}),
+            ...res.data.user
+        }));
+        return res.data.user;
     };
 
     const forgotPassword = async (email) => {
@@ -67,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, forgotPassword, resetPassword, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, register, forgotPassword, resetPassword, checkApprovalStatus, logout }}>
             {!loading && children}
         </AuthContext.Provider>
     );
