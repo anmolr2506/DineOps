@@ -152,6 +152,24 @@ const GlobalDashboard = () => {
                             <p className="mt-2 text-sm text-[#f8efe0]/70">Monitor performance across sessions and enter the one you want to operate.</p>
                         </div>
                         <div className="flex flex-wrap gap-3">
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/customers')}
+                                    className="rounded-lg border border-[#c9a14a]/35 bg-[#0d1d35] px-4 py-2 text-sm font-semibold text-[#f5dfb3]"
+                                >
+                                    Customers
+                                </button>
+                            )}
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/order-history')}
+                                    className="rounded-lg border border-[#c9a14a]/35 bg-[#0d1d35] px-4 py-2 text-sm font-semibold text-[#f5dfb3]"
+                                >
+                                    Order History
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => navigate('/sessions')}

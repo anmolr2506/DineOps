@@ -74,6 +74,7 @@ const SessionDashboard = () => {
             'user_joined_session',
             'session_payment_settings_updated',
             'order_created',
+            'new_order',
             'order_updated',
             'order_status_updated',
             'payment_recorded',

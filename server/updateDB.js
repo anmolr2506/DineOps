@@ -62,6 +62,29 @@ async function updateDB() {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_table_reservations_slot ON table_reservations (table_id, reservation_start, reservation_end, status);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_table_holds_slot ON table_holds (table_id, slot_start, slot_end, expires_at);`);
 
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS customers (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(120) NOT NULL,
+                phone VARCHAR(20) NOT NULL UNIQUE,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_customers_name ON customers (name);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers (phone);`);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS order_item_variants (
+                id SERIAL PRIMARY KEY,
+                order_item_id INT NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+                variant_value_id INT NOT NULL REFERENCES variant_group_values(id) ON DELETE CASCADE,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (order_item_id, variant_value_id)
+            );
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_item_variants_order_item ON order_item_variants (order_item_id);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_item_variants_value ON order_item_variants (variant_value_id);`);
+
                 console.log("Successfully updated users, floors, and tables schema for approval workflow and global floor plans.");
     } catch (err) {
         console.error("Error updating DB:", err);
