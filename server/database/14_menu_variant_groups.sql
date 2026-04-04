@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS variant_group_values (
     variant_group_id INT NOT NULL REFERENCES variant_groups(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     extra_price NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (extra_price >= 0),
+    value_type VARCHAR(20) DEFAULT 'unit' CHECK (value_type IN ('kg', 'unit', 'liter')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_variant_value_per_group UNIQUE (variant_group_id, name)
 );

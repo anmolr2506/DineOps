@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 const emptyProduct = {
     name: '',
     price: '',
+    tax_percent: '',
+    value_type: 'unit',
     description: '',
     image_url: '',
     category_id: ''
@@ -16,6 +18,8 @@ const ProductModal = ({ open, onClose, onSubmit, initialValues, categoryName, su
             setForm({
                 name: initialValues.name || '',
                 price: initialValues.price || '',
+                tax_percent: initialValues.tax_percent || '',
+                value_type: initialValues.value_type || 'unit',
                 description: initialValues.description || '',
                 image_url: initialValues.image_url || '',
                 category_id: initialValues.category_id || fixedCategoryId || ''
@@ -63,6 +67,27 @@ const ProductModal = ({ open, onClose, onSubmit, initialValues, categoryName, su
                         className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm focus:border-[#c9a14a]/70 focus:outline-none"
                         required
                     />
+                    <select
+                        name="tax_percent"
+                        value={form.tax_percent}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-white/15 bg-white px-4 py-3 text-sm text-black focus:border-[#c9a14a]/70 focus:outline-none"
+                    >
+                        <option value="" className="bg-white text-black">No Tax</option>
+                        <option value="5" className="bg-white text-black">5%</option>
+                        <option value="18" className="bg-white text-black">18%</option>
+                        <option value="28" className="bg-white text-black">28%</option>
+                    </select>
+                    <select
+                        name="value_type"
+                        value={form.value_type}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-white/15 bg-white px-4 py-3 text-sm text-black focus:border-[#c9a14a]/70 focus:outline-none"
+                    >
+                        <option value="unit" className="bg-white text-black">Unit</option>
+                        <option value="kg" className="bg-white text-black">Kg</option>
+                        <option value="liter" className="bg-white text-black">Liter</option>
+                    </select>
                     <textarea
                         name="description"
                         value={form.description}

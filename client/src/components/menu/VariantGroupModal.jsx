@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const emptyValueRow = () => ({ name: '', extra_price: 0 });
+const emptyValueRow = () => ({ name: '', extra_price: 0, value_type: 'unit' });
 
 const emptyState = {
     name: '',
@@ -16,7 +16,8 @@ const normalizeValues = (values) => {
 
     return values.map((value) => ({
         name: value.name || '',
-        extra_price: value.extra_price ?? 0
+        extra_price: value.extra_price ?? 0,
+        value_type: value.value_type || 'unit'
     }));
 };
 
@@ -51,7 +52,7 @@ const VariantGroupModal = ({ open, onClose, onSubmit, initialValues, submitting 
                 if (rowIndex !== index) return row;
                 return {
                     ...row,
-                    [field]: field === 'extra_price' ? value : value
+                    [field]: value
                 };
             })
         }));
@@ -73,7 +74,8 @@ const VariantGroupModal = ({ open, onClose, onSubmit, initialValues, submitting 
         const values = form.values
             .map((value) => ({
                 name: typeof value.name === 'string' ? value.name.trim() : '',
-                extra_price: Number(value.extra_price || 0)
+                extra_price: Number(value.extra_price || 0),
+                value_type: value.value_type || 'unit'
             }))
             .filter((value) => value.name);
 
@@ -118,7 +120,7 @@ const VariantGroupModal = ({ open, onClose, onSubmit, initialValues, submitting 
 
                         <div className="space-y-3">
                             {form.values.map((valueRow, index) => (
-                                <div key={`${index}-${valueRow.name}`} className="grid gap-3 sm:grid-cols-[1fr_140px_auto]">
+                                <div key={`${index}-${valueRow.name}`} className="grid gap-3 sm:grid-cols-[1fr_140px_120px_auto]">
                                     <input
                                         value={valueRow.name}
                                         onChange={(event) => handleValueChange(index, 'name', event.target.value)}
@@ -134,6 +136,15 @@ const VariantGroupModal = ({ open, onClose, onSubmit, initialValues, submitting 
                                         placeholder="Extra price"
                                         className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm focus:border-[#c9a14a]/70 focus:outline-none"
                                     />
+                                    <select
+                                        value={valueRow.value_type}
+                                        onChange={(event) => handleValueChange(index, 'value_type', event.target.value)}
+                                        className="rounded-lg border border-white/15 bg-white px-4 py-3 text-sm text-black focus:border-[#c9a14a]/70 focus:outline-none"
+                                    >
+                                        <option value="unit" className="bg-white text-black">Unit</option>
+                                        <option value="kg" className="bg-white text-black">Kg</option>
+                                        <option value="liter" className="bg-white text-black">Liter</option>
+                                    </select>
                                     <button type="button" onClick={() => removeValueRow(index)} className="rounded-lg border border-red-400/40 bg-red-900/30 px-3 py-3 text-xs font-semibold text-red-100">
                                         Remove
                                     </button>
