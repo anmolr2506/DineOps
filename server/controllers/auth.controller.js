@@ -3,8 +3,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+require('dotenv').config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 async function createTransporter() {
     if (process.env.SMTP_HOST) {
@@ -83,7 +84,7 @@ exports.forgotPassword = async (req, res) => {
         const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
 
         let info = await transporter.sendMail({
-            from: '"DineOps" <noreply@dineops.com>',
+            from: process.env.EMAIL_FROM || '"DineOps" <noreply@dineops.com>',
             to: user.email,
             subject: "Password Reset Request",
             html: `<p>You requested a password reset.</p><p>Click <a href="${resetUrl}">here</a> to reset your password. It expires in 1 hour.</p>`

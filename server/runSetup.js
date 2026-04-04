@@ -1,14 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
+require('dotenv').config();
 
 const run = async () => {
     // 1. Connect to default postgres to create database
     const client1 = new Client({
-        user: 'postgres',
-        password: 'hello',
-        host: 'localhost',
-        port: 5432,
+        user: process.env.PG_USER,
+        password: process.env.PG_PASSWORD,
+        host: process.env.PG_HOST,
+        port: process.env.PG_PORT,
         database: 'postgres'
     });
 
@@ -27,11 +28,11 @@ const run = async () => {
 
     // 2. Connect to the newly created database pos_cafe
     const client2 = new Client({
-        user: 'postgres',
-        password: 'hello',
-        host: 'localhost',
-        port: 5432,
-        database: 'pos_cafe'
+        user: process.env.PG_USER,
+        password: process.env.PG_PASSWORD,
+        host: process.env.PG_HOST,
+        port: process.env.PG_PORT,
+        database: process.env.PG_DATABASE
     });
 
     console.log("Connecting to 'pos_cafe' database...");
