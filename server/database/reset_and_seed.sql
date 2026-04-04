@@ -18,7 +18,7 @@ RESTART IDENTITY CASCADE;
 
 -- SESSION
 INSERT INTO pos_sessions (opened_by, status)
-VALUES (1, 'open');
+VALUES (1, 'active');
 
 -- CUSTOMER SESSIONS
 INSERT INTO customer_sessions (table_id, session_id, customer_token)

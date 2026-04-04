@@ -6,9 +6,9 @@ CREATE TABLE pos_sessions (
     opened_by INT NOT NULL REFERENCES users(id) ON DELETE SET NULL,
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMP,
-    status VARCHAR(20) NOT NULL DEFAULT 'open',
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
 
-    CONSTRAINT chk_session_status CHECK (status IN ('open', 'closed'))
+    CONSTRAINT chk_session_status CHECK (status IN ('active', 'closed'))
 );
 
 CREATE TABLE customer_sessions (

@@ -15,10 +15,8 @@ function Login() {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await login(email, password);
-            if (res.role === 'admin') navigate('/admin/dashboard');
-            else if (res.role === 'kitchen') navigate('/kitchen/dashboard');
-            else navigate('/staff/dashboard');
+            await login(email, password);
+            navigate('/sessions/select');
         } catch (err) {
             setError(err.response?.data?.error || "Login Failed");
         } finally {

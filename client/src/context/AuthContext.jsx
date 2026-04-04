@@ -27,6 +27,8 @@ export const AuthProvider = ({ children }) => {
             console.error("Failed to fetch user, token might be invalid", err);
             setToken(null);
             localStorage.removeItem('token');
+            localStorage.removeItem('session_id');
+            localStorage.removeItem('session_data');
         } finally {
             setLoading(false);
         }
@@ -59,6 +61,8 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setUser(null);
         localStorage.removeItem('token');
+        localStorage.removeItem('session_id');
+        localStorage.removeItem('session_data');
         delete axios.defaults.headers.common['Authorization'];
     };
 

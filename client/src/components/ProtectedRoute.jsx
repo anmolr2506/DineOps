@@ -1,19 +1,21 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getRoleHomeRoute } from '../utils/roleRoutes';
 
-export const ProtectedRoute = ({ allowedRoles }) => {
+export const ProtectedRoute = ({ allowedRoles, requireSession = true }) => {
     const { user, token } = useAuth();
+    const selectedSessionId = localStorage.getItem('session_id');
 
     if (!token) {
         return <Navigate to="/login" replace />;
     }
 
+    if (requireSession && !selectedSessionId) {
+        return <Navigate to="/sessions/select" replace />;
+    }
+
     if (allowedRoles && !allowedRoles.includes(user?.role)) {
-        // Redirect completely if role doesn't match
-        if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-        if (user?.role === 'staff') return <Navigate to="/staff/dashboard" replace />;
-        if (user?.role === 'kitchen') return <Navigate to="/kitchen/dashboard" replace />;
-        return <Navigate to="/" replace />;
+        return <Navigate to={getRoleHomeRoute(user?.role)} replace />;
     }
 
     return <Outlet />;
