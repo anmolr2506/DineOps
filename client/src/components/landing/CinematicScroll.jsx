@@ -212,20 +212,23 @@ const CinematicScroll = () => {
       {/* Hero Overlay Section */}
       <div className="absolute top-0 left-0 w-full min-h-screen flex items-center justify-center pointer-events-none z-10">
         <div className="text-center px-4 max-w-4xl">
-          <h1 className="text-6xl md:text-8xl font-sans font-bold tracking-tighter text-white mb-6 uppercase">
-            Cinematic <span className="text-primary">Motion</span>
+          <div className="mx-auto w-fit rounded-2xl border border-[#f7d9a7]/20 bg-black/20 backdrop-blur-md px-5 py-6 md:px-8 md:py-8 shadow-[0_18px_56px_rgba(0,0,0,0.42)]">
+          <h1
+            className="text-6xl md:text-8xl lg:text-9xl text-[#fff7ec] drop-shadow-[0_12px_34px_rgba(0,0,0,0.68)] mb-4 leading-none"
+            style={{ fontFamily: '"Great Vibes", cursive' }}
+          >
+            Dine<span className="text-[#ffd08a]">Ops</span>
           </h1>
-          <p className="text-lg md:text-xl text-white/60 font-sans tracking-wide max-w-2xl mx-auto">
-            Experience immersive storytelling controlled by your interaction. 
-            Scroll down to begin the journey.
+          <p
+            className="text-xl md:text-3xl text-[#fff5df] font-semibold italic tracking-[0.015em] max-w-2xl mx-auto drop-shadow-[0_6px_14px_rgba(0,0,0,0.7)]"
+            style={{ fontFamily: '"Cormorant Garamond", serif' }}
+          >
+            "A complete intelligent POS solution"
           </p>
+          </div>
         </div>
       </div>
 
-      {/* Spacer sections for content or more scroll depth */}
-      <div className="absolute bottom-20 w-full flex items-end justify-center pointer-events-none z-10">
-        <p className="text-white/30 text-xs tracking-[0.2em] uppercase">End of Sequence</p>
-      </div>
     </div>
   );
 };
