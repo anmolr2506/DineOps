@@ -1,2 +1,0 @@
-DROP DATABASE IF EXISTS pos_cafe;
-CREATE DATABASE pos_cafe;
