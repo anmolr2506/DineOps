@@ -8,11 +8,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
-
-// Placeholder Dashboards
-const AdminDashboard = () => <div className="p-10 font-bold text-2xl">Admin Dashboard (Protected)</div>;
-const StaffDashboard = () => <div className="p-10 font-bold text-2xl">Staff Dashboard (Protected)</div>;
-const KitchenDashboard = () => <div className="p-10 font-bold text-2xl">Kitchen Dashboard (Protected)</div>;
+import Dashboard from './pages/Dashboard';
 const Unauthorized = () => <div className="p-10 text-red-500 font-bold text-2xl">401 Unauthorized</div>;
 
 function App() {
@@ -28,15 +24,15 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/dashboard" element={<Dashboard />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} />}>
-            <Route path="/staff/dashboard" element={<StaffDashboard />} />
+            <Route path="/staff/dashboard" element={<Dashboard />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'kitchen']} />}>
-            <Route path="/kitchen/dashboard" element={<KitchenDashboard />} />
+            <Route path="/kitchen/dashboard" element={<Dashboard />} />
           </Route>
 
           <Route path="/unauthorized" element={<Unauthorized />} />
