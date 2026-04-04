@@ -4,7 +4,7 @@ import VariantGroupModal from './VariantGroupModal';
 
 const API_BASE = 'http://localhost:5000/api';
 
-const VariantsTab = ({ canManage, sessionId }) => {
+const VariantsTab = ({ canManage }) => {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -20,7 +20,7 @@ const VariantsTab = ({ canManage, sessionId }) => {
             setLoading(true);
             setError('');
             const response = await axios.get(`${API_BASE}/variants/groups`, {
-                params: { session_id: sessionId, search, limit: 100 }
+                params: { search, limit: 100 }
             });
             setGroups(response.data.groups || []);
         } catch (err) {
@@ -32,16 +32,16 @@ const VariantsTab = ({ canManage, sessionId }) => {
 
     useEffect(() => {
         fetchGroups();
-    }, [search, sessionId]);
+    }, [search]);
 
     const handleSubmit = async (formValues) => {
         try {
             setSubmitting(true);
             setError('');
             if (editingGroup) {
-                await axios.put(`${API_BASE}/variants/groups/${editingGroup.id}`, { ...formValues, session_id: sessionId });
+                await axios.put(`${API_BASE}/variants/groups/${editingGroup.id}`, { ...formValues });
             } else {
-                await axios.post(`${API_BASE}/variants/groups`, { ...formValues, session_id: sessionId });
+                await axios.post(`${API_BASE}/variants/groups`, { ...formValues });
             }
             setShowModal(false);
             setEditingGroup(null);
@@ -56,7 +56,7 @@ const VariantsTab = ({ canManage, sessionId }) => {
     const handleDelete = async (groupId) => {
         try {
             await axios.delete(`${API_BASE}/variants/groups/${groupId}`, {
-                data: { session_id: sessionId }
+                data: {}
             });
             await fetchGroups();
         } catch (err) {
@@ -71,7 +71,6 @@ const VariantsTab = ({ canManage, sessionId }) => {
         try {
             setError('');
             await axios.post(`${API_BASE}/variants/groups/${groupId}/values`, {
-                session_id: sessionId,
                 name: draft,
                 extra_price: 0
             });

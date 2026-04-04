@@ -4,7 +4,7 @@ import ProductModal from '../categories/ProductModal';
 
 const API_BASE = 'http://localhost:5000/api';
 
-const ProductsTab = ({ canManage, sessionId }) => {
+const ProductsTab = ({ canManage }) => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ const ProductsTab = ({ canManage, sessionId }) => {
 
     const fetchCategories = async () => {
         const response = await axios.get(`${API_BASE}/categories`, {
-            params: { session_id: sessionId, limit: 100 }
+            params: { limit: 100 }
         });
         setCategories(response.data.categories || []);
     };
@@ -34,7 +34,7 @@ const ProductsTab = ({ canManage, sessionId }) => {
             setLoading(true);
             setError('');
             const response = await axios.get(`${API_BASE}/products`, {
-                params: { session_id: sessionId, search }
+                params: { search }
             });
             setProducts(response.data.products || []);
         } catch (err) {
@@ -46,11 +46,11 @@ const ProductsTab = ({ canManage, sessionId }) => {
 
     useEffect(() => {
         fetchCategories().catch((err) => setError(err.response?.data?.error || 'Unable to load categories.'));
-    }, [sessionId]);
+    }, []);
 
     useEffect(() => {
         fetchProducts();
-    }, [search, sessionId]);
+    }, [search]);
 
     const handleInlineEditStart = (product) => {
         setEditingProductId(product.id);
@@ -76,7 +76,6 @@ const ProductsTab = ({ canManage, sessionId }) => {
             setError('');
             await axios.put(`${API_BASE}/products/${productId}`, {
                 ...editingForm,
-                session_id: sessionId,
                 category_id: Number(editingForm.category_id)
             });
             setEditingProductId(null);
@@ -95,7 +94,6 @@ const ProductsTab = ({ canManage, sessionId }) => {
             setError('');
             await axios.post(`${API_BASE}/products`, {
                 ...formValues,
-                session_id: sessionId,
                 category_id: Number(formValues.category_id)
             });
             setShowCreateModal(false);
@@ -114,7 +112,7 @@ const ProductsTab = ({ canManage, sessionId }) => {
                     <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-[#c9a14a]/80">Products</p>
                         <h2 className="mt-1 text-3xl font-semibold" style={{ fontFamily: '"Cormorant Garamond", serif' }}>Product Catalog</h2>
-                        <p className="mt-2 text-sm text-[#f8efe0]/70">Browse every product for the current session. Admin users can edit directly from the table.</p>
+                        <p className="mt-2 text-sm text-[#f8efe0]/70">Browse every product. Admin users can edit directly from the table.</p>
                     </div>
 
                     {canManage && (
@@ -145,8 +143,8 @@ const ProductsTab = ({ canManage, sessionId }) => {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-[#f8efe0]/75">Loading products...</div>
             ) : products.length === 0 ? (
                 <div className="rounded-xl border border-[#c9a14a]/20 bg-[#0a1628]/70 p-8 text-center">
-                    <p className="text-lg font-medium">No products found for this session.</p>
-                    <p className="mt-2 text-sm text-[#f8efe0]/70">Use Add Product to create menu items for the current session.</p>
+                    <p className="text-lg font-medium">No products found.</p>
+                    <p className="mt-2 text-sm text-[#f8efe0]/70">Use Add Product to create menu items.</p>
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a1628]/80 shadow-[0_16px_70px_rgba(0,0,0,0.35)]">

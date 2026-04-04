@@ -7,6 +7,10 @@ CREATE TABLE pos_sessions (
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMP,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
+    allow_cash BOOLEAN NOT NULL DEFAULT TRUE,
+    allow_digital BOOLEAN NOT NULL DEFAULT TRUE,
+    allow_upi BOOLEAN NOT NULL DEFAULT FALSE,
+    upi_id VARCHAR(120),
 
     CONSTRAINT chk_session_status CHECK (status IN ('active', 'closed'))
 );

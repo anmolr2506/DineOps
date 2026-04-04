@@ -7,7 +7,7 @@ import ProductModal from '../categories/ProductModal';
 const API_BASE = 'http://localhost:5000/api';
 const DEFAULT_LIMIT = 6;
 
-const CategoriesTab = ({ canManage, sessionId }) => {
+const CategoriesTab = ({ canManage }) => {
     const [categories, setCategories] = useState([]);
     const [variantGroups, setVariantGroups] = useState([]);
     const [productsByCategory, setProductsByCategory] = useState({});
@@ -28,7 +28,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
 
     const fetchVariantGroups = async () => {
         const response = await axios.get(`${API_BASE}/variants/groups`, {
-            params: { session_id: sessionId, limit: 100 }
+            params: { limit: 100 }
         });
         setVariantGroups(response.data.groups || []);
     };
@@ -38,7 +38,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
             setLoading(true);
             setError('');
             const response = await axios.get(`${API_BASE}/categories`, {
-                params: { session_id: sessionId, search, page, limit: DEFAULT_LIMIT }
+                params: { search, page, limit: DEFAULT_LIMIT }
             });
             setCategories(response.data.categories || []);
             setPagination(response.data.pagination || { page, limit: DEFAULT_LIMIT, total: 0 });
@@ -53,11 +53,11 @@ const CategoriesTab = ({ canManage, sessionId }) => {
         fetchVariantGroups().catch((err) => {
             setError(err.response?.data?.error || 'Unable to load variant groups.');
         });
-    }, [sessionId]);
+    }, []);
 
     useEffect(() => {
         fetchCategories();
-    }, [page, search, sessionId]);
+    }, [page, search]);
 
     const loadProducts = async (categoryId, forceReload = false) => {
         if (!forceReload && productsByCategory[categoryId]) return;
@@ -65,7 +65,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
         try {
             setLoadingProductsByCategory((prev) => ({ ...prev, [categoryId]: true }));
             const response = await axios.get(`${API_BASE}/products`, {
-                params: { session_id: sessionId, category_id: categoryId }
+                params: { category_id: categoryId }
             });
             setProductsByCategory((prev) => ({ ...prev, [categoryId]: response.data.products || [] }));
         } catch (err) {
@@ -80,9 +80,9 @@ const CategoriesTab = ({ canManage, sessionId }) => {
             setSubmitting(true);
             setError('');
             if (editingCategory) {
-                await axios.put(`${API_BASE}/categories/${editingCategory.id}`, { ...formValues, session_id: sessionId });
+                await axios.put(`${API_BASE}/categories/${editingCategory.id}`, { ...formValues });
             } else {
-                await axios.post(`${API_BASE}/categories`, { ...formValues, session_id: sessionId });
+                await axios.post(`${API_BASE}/categories`, { ...formValues });
             }
             setShowCategoryModal(false);
             setEditingCategory(null);
@@ -99,7 +99,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
         if (!canManage) return;
         try {
             setError('');
-            await axios.delete(`${API_BASE}/categories/${categoryId}`, { data: { session_id: sessionId } });
+            await axios.delete(`${API_BASE}/categories/${categoryId}`);
             setProductsByCategory((prev) => {
                 const nextState = { ...prev };
                 delete nextState[categoryId];
@@ -119,8 +119,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
             setError('');
             const payload = {
                 ...formValues,
-                category_id: Number(formValues.category_id || productCategory.id),
-                session_id: sessionId
+                category_id: Number(formValues.category_id || productCategory.id)
             };
 
             if (editingProduct) {
@@ -147,7 +146,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
                     <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-[#c9a14a]/80">Categories</p>
                         <h2 className="mt-1 text-3xl font-semibold" style={{ fontFamily: '"Cormorant Garamond", serif' }}>Category Management</h2>
-                        <p className="mt-2 text-sm text-[#f8efe0]/70">Browse categories for the current session and manage which variant groups apply to each one.</p>
+                        <p className="mt-2 text-sm text-[#f8efe0]/70">Browse categories and manage which variant groups apply to each one.</p>
                     </div>
 
                     {canManage && (
@@ -186,7 +185,7 @@ const CategoriesTab = ({ canManage, sessionId }) => {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-[#f8efe0]/75">Loading categories...</div>
             ) : categories.length === 0 ? (
                 <div className="rounded-xl border border-[#c9a14a]/20 bg-[#0a1628]/70 p-8 text-center">
-                    <p className="text-lg font-medium">No categories found for this session.</p>
+                    <p className="text-lg font-medium">No categories found.</p>
                     <p className="mt-2 text-sm text-[#f8efe0]/70">{canManage ? 'Create your first category to start adding products.' : 'Please contact an admin to set up categories.'}</p>
                 </div>
             ) : (

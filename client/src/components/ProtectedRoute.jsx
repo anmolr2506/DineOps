@@ -11,7 +11,7 @@ export const ProtectedRoute = ({ allowedRoles, requireSession = true }) => {
     }
 
     if (requireSession && !selectedSessionId) {
-        return <Navigate to="/sessions/select" replace />;
+        return <Navigate to="/sessions" replace />;
     }
 
     if (allowedRoles && !allowedRoles.includes(user?.role)) {

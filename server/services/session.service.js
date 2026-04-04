@@ -11,6 +11,24 @@ const getActiveSessions = async () => {
     return sessionModel.getActiveSessions();
 };
 
+const emitDashboardRefresh = (io, sessionId = null) => {
+    if (!io) return;
+
+    io.emit('dashboard_refresh', {
+        scope: sessionId ? 'session' : 'global',
+        session_id: sessionId || null,
+        at: new Date().toISOString()
+    });
+
+    if (sessionId) {
+        io.to(`session_${sessionId}`).emit('dashboard_refresh', {
+            scope: 'session',
+            session_id: sessionId,
+            at: new Date().toISOString()
+        });
+    }
+};
+
 const joinSession = async ({ userId, sessionId, io, socketId }) => {
     if (!Number.isInteger(sessionId) || sessionId <= 0) {
         throw new ServiceError('Invalid session_id. It must be a positive integer.', 400);
@@ -35,6 +53,8 @@ const joinSession = async ({ userId, sessionId, io, socketId }) => {
             });
         }
     }
+
+    emitDashboardRefresh(io, sessionId);
 
     return {
         ...session,
@@ -66,6 +86,8 @@ const createSession = async ({ openedBy, name, io }) => {
         io.emit('session_created', createdSession);
     }
 
+    emitDashboardRefresh(io);
+
     return createdSession;
 };
 
@@ -85,7 +107,54 @@ const stopSession = async ({ sessionId, io }) => {
         io.emit('session_stopped', stoppedSession);
     }
 
+    emitDashboardRefresh(io, sessionId);
+
     return stoppedSession;
+};
+
+const updateSessionPaymentSettings = async ({ sessionId, payload, io }) => {
+    if (!Number.isInteger(sessionId) || sessionId <= 0) {
+        throw new ServiceError('Invalid session id.', 400);
+    }
+
+    const activeSession = await sessionModel.getActiveSessionById(sessionId);
+    if (!activeSession) {
+        throw new ServiceError('Session not found or already stopped.', 404);
+    }
+
+    const allowCash = Boolean(payload.allow_cash);
+    const allowDigital = Boolean(payload.allow_digital);
+    const allowUpi = Boolean(payload.allow_upi);
+    const upiIdRaw = typeof payload.upi_id === 'string' ? payload.upi_id.trim() : '';
+    const upiId = allowUpi ? upiIdRaw : null;
+
+    if (!allowCash && !allowDigital && !allowUpi) {
+        throw new ServiceError('At least one payment mode must be enabled.', 400);
+    }
+
+    if (allowUpi && !upiId) {
+        throw new ServiceError('UPI ID is required when UPI payment is enabled.', 400);
+    }
+
+    if (upiId && upiId.length > 120) {
+        throw new ServiceError('UPI ID must be 120 characters or less.', 400);
+    }
+
+    const updatedSession = await sessionModel.updateSessionPaymentSettings({
+        sessionId,
+        allowCash,
+        allowDigital,
+        allowUpi,
+        upiId
+    });
+
+    if (io) {
+        io.emit('session_payment_settings_updated', updatedSession);
+    }
+
+    emitDashboardRefresh(io, sessionId);
+
+    return updatedSession;
 };
 
 module.exports = {
@@ -94,5 +163,6 @@ module.exports = {
     joinSession,
     getCurrentSession,
     createSession,
-    stopSession
+    stopSession,
+    updateSessionPaymentSettings
 };

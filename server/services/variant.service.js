@@ -1,23 +1,13 @@
 const pool = require('../config/db');
 const { CategoryServiceError } = require('./category.service');
 
-const validateSessionAccess = async (userId, sessionId) => {
-    const result = await pool.query(
-        `
-            SELECT us.id
-            FROM user_sessions us
-            JOIN pos_sessions ps ON ps.id = us.session_id
-            WHERE us.user_id = $1
-              AND us.session_id = $2
-              AND ps.status = 'active'
-            LIMIT 1;
-        `,
-        [userId, sessionId]
-    );
-
-    if (!result.rows[0]) {
-        throw new CategoryServiceError('User has no access to this session.', 403);
+const resolveMenuScopeSessionId = async () => {
+    const result = await pool.query('SELECT id FROM pos_sessions ORDER BY id ASC LIMIT 1');
+    const sessionId = result.rows[0]?.id;
+    if (!Number.isInteger(sessionId) || sessionId <= 0) {
+        throw new CategoryServiceError('No session available to anchor global menu scope.', 400);
     }
+    return sessionId;
 };
 
 const normalizeSearchTerm = (value) => {
@@ -25,12 +15,8 @@ const normalizeSearchTerm = (value) => {
     return search.length > 0 ? `%${search}%` : '';
 };
 
-const listVariantGroups = async ({ userId, sessionId, search = '', page = 1, limit = 8 }) => {
-    if (!Number.isInteger(sessionId) || sessionId <= 0) {
-        throw new CategoryServiceError('Invalid session_id.', 400);
-    }
-
-    await validateSessionAccess(userId, sessionId);
+const listVariantGroups = async ({ search = '', page = 1, limit = 8 }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.max(1, Math.min(24, Number(limit) || 8));
@@ -77,8 +63,8 @@ const listVariantGroups = async ({ userId, sessionId, search = '', page = 1, lim
     `;
 
     const [groupsResult, countResult] = await Promise.all([
-        pool.query(groupsQuery, [sessionId, searchTerm, safeLimit, offset]),
-        pool.query(countQuery, [sessionId, searchTerm])
+        pool.query(groupsQuery, [menuSessionId, searchTerm, safeLimit, offset]),
+        pool.query(countQuery, [menuSessionId, searchTerm])
     ]);
 
     return {
@@ -91,8 +77,8 @@ const listVariantGroups = async ({ userId, sessionId, search = '', page = 1, lim
     };
 };
 
-const createVariantGroup = async ({ userId, sessionId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const createVariantGroup = async ({ userId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const name = payload.name?.trim();
     if (!name) {
@@ -109,7 +95,7 @@ const createVariantGroup = async ({ userId, sessionId, payload }) => {
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, name, description, status, session_id, created_at;
         `,
-        [name, description, status, sessionId, userId]
+        [name, description, status, menuSessionId, userId]
     );
 
     const group = groupResult.rows[0];
@@ -131,16 +117,16 @@ const createVariantGroup = async ({ userId, sessionId, payload }) => {
     return group;
 };
 
-const updateVariantGroup = async ({ userId, sessionId, groupId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const updateVariantGroup = async ({ groupId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     if (!Number.isInteger(groupId) || groupId <= 0) {
         throw new CategoryServiceError('Invalid variant group id.', 400);
     }
 
-    const existing = await pool.query('SELECT id FROM variant_groups WHERE id = $1 AND session_id = $2 LIMIT 1', [groupId, sessionId]);
+    const existing = await pool.query('SELECT id FROM variant_groups WHERE id = $1 AND session_id = $2 LIMIT 1', [groupId, menuSessionId]);
     if (!existing.rows[0]) {
-        throw new CategoryServiceError('Variant group not found in this session.', 404);
+        throw new CategoryServiceError('Variant group not found.', 404);
     }
 
     const name = payload.name?.trim();
@@ -162,7 +148,7 @@ const updateVariantGroup = async ({ userId, sessionId, groupId, payload }) => {
             WHERE id = $4 AND session_id = $5
             RETURNING id, name, description, status, session_id, created_at;
         `,
-        [name, description, status, groupId, sessionId]
+        [name, description, status, groupId, menuSessionId]
     );
 
     await pool.query('DELETE FROM variant_group_values WHERE variant_group_id = $1', [groupId]);
@@ -188,21 +174,21 @@ const updateVariantGroup = async ({ userId, sessionId, groupId, payload }) => {
     return result.rows[0];
 };
 
-const deleteVariantGroup = async ({ userId, sessionId, groupId }) => {
-    await validateSessionAccess(userId, sessionId);
+const deleteVariantGroup = async ({ groupId }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     if (!Number.isInteger(groupId) || groupId <= 0) {
         throw new CategoryServiceError('Invalid variant group id.', 400);
     }
 
-    const result = await pool.query('DELETE FROM variant_groups WHERE id = $1 AND session_id = $2 RETURNING id', [groupId, sessionId]);
+    const result = await pool.query('DELETE FROM variant_groups WHERE id = $1 AND session_id = $2 RETURNING id', [groupId, menuSessionId]);
     if (!result.rows[0]) {
-        throw new CategoryServiceError('Variant group not found in this session.', 404);
+        throw new CategoryServiceError('Variant group not found.', 404);
     }
 };
 
-const addVariantValue = async ({ userId, sessionId, groupId, payload }) => {
-    await validateSessionAccess(userId, sessionId);
+const addVariantValue = async ({ groupId, payload }) => {
+    const menuSessionId = await resolveMenuScopeSessionId();
 
     const name = payload.name?.trim();
     if (!name) {
@@ -210,9 +196,9 @@ const addVariantValue = async ({ userId, sessionId, groupId, payload }) => {
     }
 
     const extraPrice = Number(payload.extra_price || 0);
-    const group = await pool.query('SELECT id FROM variant_groups WHERE id = $1 AND session_id = $2 LIMIT 1', [groupId, sessionId]);
+    const group = await pool.query('SELECT id FROM variant_groups WHERE id = $1 AND session_id = $2 LIMIT 1', [groupId, menuSessionId]);
     if (!group.rows[0]) {
-        throw new CategoryServiceError('Variant group not found in this session.', 404);
+        throw new CategoryServiceError('Variant group not found.', 404);
     }
 
     const result = await pool.query(
