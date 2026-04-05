@@ -1,4 +1,5 @@
 const sessionModel = require('../models/session.model');
+const { refreshSessionToken, clearSessionToken } = require('./customerQr.service');
 
 class ServiceError extends Error {
     constructor(message, statusCode = 500) {
@@ -90,6 +91,9 @@ const createSession = async ({ openedBy, name, io }) => {
         io.emit('session_created', createdSession);
     }
 
+    // Rotate customer QR token whenever a new session is created.
+    refreshSessionToken(createdSession.id);
+
     emitDashboardRefresh(io);
 
     return createdSession;
@@ -110,6 +114,9 @@ const stopSession = async ({ sessionId, io }) => {
     if (io) {
         io.emit('session_stopped', stoppedSession);
     }
+
+    // Expire QR token for stopped session.
+    clearSessionToken(sessionId);
 
     emitDashboardRefresh(io, sessionId);
 

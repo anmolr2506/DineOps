@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useSession } from '../context/SessionContext';
+import { generateSessionQrs } from '../services/customerOrdering.service';
 import { getRoleHomeRoute } from '../utils/roleRoutes';
 import ApprovalPanel from '../components/approval/ApprovalPanel';
 
@@ -38,6 +39,27 @@ const SessionSelection = () => {
     const [approvalPanelOpen, setApprovalPanelOpen] = useState(false);
     const [pendingUsers, setPendingUsers] = useState([]);
     const [pendingCount, setPendingCount] = useState(0);
+    const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [qrLoading, setQrLoading] = useState(false);
+    const [qrError, setQrError] = useState('');
+    const [qrSessionName, setQrSessionName] = useState('');
+    const [qrRows, setQrRows] = useState([]);
+
+    const openQrModal = async (session) => {
+        try {
+            setQrLoading(true);
+            setQrError('');
+            setQrSessionName(session.name || `Session #${session.id}`);
+            setQrModalOpen(true);
+
+            const payload = await generateSessionQrs({ sessionId: session.id, refresh: true });
+            setQrRows(payload.tables || []);
+        } catch (err) {
+            setQrError(err.response?.data?.error || 'Unable to generate QR codes.');
+        } finally {
+            setQrLoading(false);
+        }
+    };
 
     const loadApprovalRequests = async () => {
         if (!isAdmin) return;
@@ -67,6 +89,17 @@ const SessionSelection = () => {
         clearSession();
         loadSessions();
     }, []);
+
+    useEffect(() => {
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+            return;
+        }
+
+        // Rotate QR tokens on each session page refresh.
+        Promise.all(sessions.map((session) => generateSessionQrs({ sessionId: session.id, refresh: true }))).catch(() => {
+            // Best effort token rotation; ignore noisy UI error here.
+        });
+    }, [sessions]);
 
     useEffect(() => {
         if (!isAdmin) return;
@@ -356,6 +389,13 @@ const SessionSelection = () => {
                                         {stoppingSessionId === session.id ? 'Stopping...' : 'Stop Session'}
                                     </button>
                                 )}
+
+                                <button
+                                    className="mt-3 w-full rounded-lg border border-[#d4b173]/45 bg-[#0d1d35] py-3 text-sm font-semibold uppercase tracking-wide text-[#f5dfb3] transition hover:bg-[#112443]"
+                                    onClick={() => openQrModal(session)}
+                                >
+                                    Generate QR
+                                </button>
                             </article>
                         ))}
                     </div>
@@ -367,6 +407,55 @@ const SessionSelection = () => {
                     pendingUsers={pendingUsers}
                     onUpdated={loadApprovalRequests}
                 />
+
+                {qrModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                        <div className="w-full max-w-4xl rounded-2xl border border-[#d4b173]/35 bg-[#0a1626] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-xs uppercase tracking-[0.2em] text-[#d4b173]/80">QR Codes</p>
+                                    <h2 className="mt-2 text-2xl font-semibold">{qrSessionName}</h2>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setQrModalOpen(false)}
+                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm"
+                                >
+                                    Close
+                                </button>
+                            </div>
+
+                            {qrError && (
+                                <div className="mt-4 rounded-lg border border-red-500/40 bg-red-900/30 px-4 py-3 text-sm text-red-100">
+                                    {qrError}
+                                </div>
+                            )}
+
+                            {qrLoading ? (
+                                <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-8 text-center text-[#f4ead2]/75">
+                                    Generating table QR codes...
+                                </div>
+                            ) : (
+                                <div className="mt-4 grid max-h-[60vh] grid-cols-1 gap-4 overflow-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+                                    {qrRows.map((row) => (
+                                        <article key={row.table_id} className="rounded-xl border border-[#d4b173]/25 bg-[#0d1d35] p-3">
+                                            <p className="text-xs uppercase tracking-[0.12em] text-[#d4b173]/80">Table {row.table_number}</p>
+                                            <img src={row.qr_image_url} alt={`QR for table ${row.table_number}`} className="mt-2 h-40 w-full rounded-lg bg-white p-2 object-contain" />
+                                            <a
+                                                href={row.qr_image_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-3 inline-block rounded-lg border border-[#d4b173]/45 bg-[#132742] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#f5dfb3]"
+                                            >
+                                                Download QR
+                                            </a>
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {settingsSession && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

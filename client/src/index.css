@@ -1,10 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600;1,700&family=Great+Vibes&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-primary: hsl(var(--primary));
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
   --animate-marquee: marquee 20s linear infinite;
 
   @keyframes marquee {
@@ -14,14 +16,39 @@
 }
 
 :root {
-  --background: 260 87% 3%;
-  --foreground: 40 6% 95%;
-  --primary: 262 83% 58%;
+  --background: 221 57% 5%;
+  --foreground: 35 55% 94%;
+  --primary: 42 59% 57%;
 }
 
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
-    background-color: black;
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(circle at top, rgba(201, 161, 74, 0.08), transparent 35%),
+      radial-gradient(circle at 20% 20%, rgba(84, 116, 180, 0.1), transparent 28%),
+      linear-gradient(180deg, #020812 0%, #081121 50%, #050b16 100%);
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif);
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-serif);
+  }
+
+  .font-body {
+    font-family: var(--font-sans);
   }
 }

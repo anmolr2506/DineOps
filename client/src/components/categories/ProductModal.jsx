@@ -100,7 +100,8 @@ const ProductModal = ({ open, onClose, onSubmit, initialValues, categoryName, su
                         name="image_url"
                         value={form.image_url}
                         onChange={handleChange}
-                        placeholder="Image URL"
+                        placeholder="Image URL (.png, .jpg, .jpeg)"
+                        type="url"
                         className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm focus:border-[#c9a14a]/70 focus:outline-none"
                     />
                     <select
