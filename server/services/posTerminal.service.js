@@ -371,11 +371,11 @@ const createOrder = async ({ userId, payload, io }) => {
 
         const orderResult = await client.query(
             `
-            INSERT INTO orders (table_id, session_id, source, status, total_amount, approved_by)
-            VALUES ($1, $2, 'POS', 'pending', $3, $4)
-            RETURNING id, table_id, session_id, source, status, total_amount, created_at
+            INSERT INTO orders (table_id, session_id, source, status, total_amount, approved_by, customer_id)
+            VALUES ($1, $2, 'POS', 'pending', $3, $4, $5)
+            RETURNING id, table_id, session_id, source, status, total_amount, created_at, customer_id
             `,
-            [tableId, sessionId, totalAmount, userId]
+            [tableId, sessionId, totalAmount, userId, customerId]
         );
 
         const order = orderResult.rows[0];
@@ -383,11 +383,11 @@ const createOrder = async ({ userId, payload, io }) => {
         for (const item of recalculatedItems) {
             const orderItemResult = await client.query(
                 `
-                INSERT INTO order_items (order_id, product_id, quantity, price, subtotal)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO order_items (order_id, product_id, quantity, price, subtotal, tax_percent)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id
                 `,
-                [order.id, item.product_id, item.quantity, item.price, item.subtotal]
+                [order.id, item.product_id, item.quantity, item.price, item.subtotal, item.tax_percent]
             );
 
             const orderItemId = orderItemResult.rows[0]?.id;

@@ -20,6 +20,26 @@ const getActiveSessions = async () => {
     return result.rows;
 };
 
+const getAllSessions = async () => {
+    const query = `
+        SELECT
+            id,
+            COALESCE(name, 'Session #' || id::text) AS name,
+            start_time,
+            end_time,
+            status,
+            allow_cash,
+            allow_digital,
+            allow_upi,
+            upi_id
+        FROM pos_sessions
+        ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_time DESC, id DESC;
+    `;
+
+    const result = await pool.query(query);
+    return result.rows;
+};
+
 const getActiveSessionById = async (sessionId) => {
     const query = `
         SELECT
@@ -143,6 +163,7 @@ const updateSessionPaymentSettings = async ({ sessionId, allowCash, allowDigital
 
 module.exports = {
     getActiveSessions,
+    getAllSessions,
     getActiveSessionById,
     upsertUserSession,
     getCurrentSessionForUser,

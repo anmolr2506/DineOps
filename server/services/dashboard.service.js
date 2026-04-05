@@ -132,13 +132,16 @@ const getAllSessionsSummary = async (filters = {}) => {
             ps.status,
             ps.start_time,
             ps.end_time,
-            COALESCE(SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END), 0)::numeric AS revenue,
+            COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0)::numeric AS revenue,
             COUNT(o.id)::int AS order_count
         FROM pos_sessions ps
         LEFT JOIN orders o
           ON o.session_id = ps.id
          AND ($2::date IS NULL OR DATE(o.created_at) >= $2::date)
          AND ($3::date IS NULL OR DATE(o.created_at) <= $3::date)
+        LEFT JOIN payments p
+          ON p.order_id = o.id
+         AND p.status = 'completed'
         WHERE ($1::int IS NULL OR ps.id = $1)
         GROUP BY ps.id
         ORDER BY ps.start_time DESC, ps.id DESC;
@@ -152,21 +155,37 @@ const getGlobalTrend = async (filters = {}) => {
     const { sessionId, dateFrom, dateTo } = normalizeGlobalFilters(filters);
 
     const query = `
+        WITH bounds AS (
+            SELECT
+                COALESCE($2::date, CURRENT_DATE - INTERVAL '6 day') AS start_date,
+                COALESCE($3::date, CURRENT_DATE) AS end_date
+        ),
+        date_window AS (
+            SELECT generate_series(start_date, end_date, INTERVAL '1 day')::date AS date
+            FROM bounds
+        ),
+        revenue_by_day AS (
+            SELECT
+                DATE(p.created_at) AS date,
+                COALESCE(SUM(p.amount), 0)::numeric AS revenue
+            FROM payments p
+            JOIN orders o ON o.id = p.order_id
+            WHERE p.status = 'completed'
+              AND ($1::int IS NULL OR o.session_id = $1)
+              AND ($2::date IS NULL OR DATE(p.created_at) >= $2::date)
+              AND ($3::date IS NULL OR DATE(p.created_at) <= $3::date)
+            GROUP BY DATE(p.created_at)
+        )
         SELECT
-            DATE(o.created_at) AS date,
-            COALESCE(SUM(o.total_amount), 0)::numeric AS revenue
-        FROM orders o
-        WHERE o.status = 'paid'
-          AND ($1::int IS NULL OR o.session_id = $1)
-          AND ($2::date IS NULL OR DATE(o.created_at) >= $2::date)
-          AND ($3::date IS NULL OR DATE(o.created_at) <= $3::date)
-        GROUP BY DATE(o.created_at)
-        ORDER BY DATE(o.created_at) DESC
-        LIMIT 7;
+            dw.date,
+            COALESCE(rbd.revenue, 0)::numeric AS revenue
+        FROM date_window dw
+        LEFT JOIN revenue_by_day rbd ON rbd.date = dw.date
+        ORDER BY dw.date ASC;
     `;
 
     const result = await pool.query(query, [sessionId, dateFrom, dateTo]);
-    return result.rows.reverse();
+    return result.rows;
 };
 
 const getDashboardStats = async (sessionId) => {
@@ -174,8 +193,20 @@ const getDashboardStats = async (sessionId) => {
         SELECT
             COUNT(*)::int AS total_orders,
             COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_approval,
-            COUNT(*) FILTER (WHERE status = 'paid')::int AS paid_orders,
-            COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0)::numeric AS revenue,
+            (
+                SELECT COUNT(DISTINCT p.order_id)::int
+                FROM payments p
+                JOIN orders po ON po.id = p.order_id
+                WHERE po.session_id = $1
+                  AND p.status = 'completed'
+            ) AS paid_orders,
+            (
+                SELECT COALESCE(SUM(p.amount), 0)::numeric
+                FROM payments p
+                JOIN orders po ON po.id = p.order_id
+                WHERE po.session_id = $1
+                  AND p.status = 'completed'
+            ) AS revenue,
             COUNT(DISTINCT table_id) FILTER (WHERE status IN ('pending', 'approved', 'preparing'))::int AS active_tables,
             COUNT(*) FILTER (WHERE status = 'preparing')::int AS in_kitchen
         FROM orders
@@ -233,19 +264,59 @@ const getLiveActivity = async (sessionId) => {
 
 const getSalesTrend = async (sessionId) => {
     const query = `
+        WITH date_window AS (
+            SELECT generate_series(CURRENT_DATE - INTERVAL '6 day', CURRENT_DATE, INTERVAL '1 day')::date AS date
+        ),
+        revenue_by_day AS (
+            SELECT
+                DATE(p.created_at) AS date,
+                COALESCE(SUM(p.amount), 0)::numeric AS revenue
+            FROM payments p
+            JOIN orders o ON o.id = p.order_id
+            WHERE o.session_id = $1
+              AND p.status = 'completed'
+              AND DATE(p.created_at) BETWEEN CURRENT_DATE - INTERVAL '6 day' AND CURRENT_DATE
+            GROUP BY DATE(p.created_at)
+        )
         SELECT
-            DATE(created_at) AS date,
-            COALESCE(SUM(total_amount), 0)::numeric AS revenue
-        FROM orders
-        WHERE session_id = $1
-          AND status = 'paid'
-        GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at) DESC
-        LIMIT 7;
+            dw.date,
+            COALESCE(rbd.revenue, 0)::numeric AS revenue
+        FROM date_window dw
+        LEFT JOIN revenue_by_day rbd ON rbd.date = dw.date
+        ORDER BY dw.date ASC;
     `;
 
     const result = await pool.query(query, [sessionId]);
-    return result.rows.reverse();
+    return result.rows;
+};
+
+const getSessionMetrics = async (sessionId) => {
+    if (!Number.isInteger(sessionId) || sessionId <= 0) {
+        throw new DashboardServiceError('Invalid session_id.', 400);
+    }
+
+    const query = `
+        SELECT
+            COUNT(*)::int AS total_orders,
+            COUNT(*) FILTER (WHERE status IN ('pending', 'approved', 'paid'))::int AS pending_orders,
+            COUNT(*) FILTER (WHERE status = 'completed')::int AS completed_orders,
+            COUNT(*) FILTER (WHERE status = 'completed' AND DATE(created_at) = CURRENT_DATE)::int AS completed_today,
+            COUNT(DISTINCT table_id) FILTER (WHERE status IN ('pending', 'approved', 'preparing'))::int AS active_tables,
+            COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0)::numeric AS revenue
+        FROM orders o
+        LEFT JOIN payments p ON p.order_id = o.id
+        WHERE o.session_id = $1;
+    `;
+
+    const result = await pool.query(query, [sessionId]);
+    return result.rows[0] || {
+        total_orders: 0,
+        pending_orders: 0,
+        completed_orders: 0,
+        completed_today: 0,
+        active_tables: 0,
+        revenue: 0
+    };
 };
 
 module.exports = {
@@ -257,5 +328,6 @@ module.exports = {
     getDashboardStats,
     getRecentOrders,
     getLiveActivity,
-    getSalesTrend
+    getSalesTrend,
+    getSessionMetrics
 };

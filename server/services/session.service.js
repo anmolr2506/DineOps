@@ -11,6 +11,10 @@ const getActiveSessions = async () => {
     return sessionModel.getActiveSessions();
 };
 
+const getAllSessions = async () => {
+    return sessionModel.getAllSessions();
+};
+
 const emitDashboardRefresh = (io, sessionId = null) => {
     if (!io) return;
 
@@ -160,6 +164,7 @@ const updateSessionPaymentSettings = async ({ sessionId, payload, io }) => {
 module.exports = {
     ServiceError,
     getActiveSessions,
+    getAllSessions,
     joinSession,
     getCurrentSession,
     createSession,

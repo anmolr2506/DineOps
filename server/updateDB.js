@@ -101,6 +101,26 @@ async function updateDB() {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers (phone);`);
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS restaurant_config (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(160) NOT NULL,
+                logo_url TEXT,
+                address TEXT,
+                contact_info TEXT,
+                gst_percent NUMERIC(5,2) NOT NULL DEFAULT 5 CHECK (gst_percent >= 0),
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`
+            INSERT INTO restaurant_config (id, name, logo_url, address, contact_info, gst_percent)
+            VALUES (1, 'DineOps Restaurant', NULL, NULL, NULL, 5)
+            ON CONFLICT (id) DO NOTHING;
+        `);
+
+        await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id INT REFERENCES customers(id) ON DELETE SET NULL;`);
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS order_item_variants (
                 id SERIAL PRIMARY KEY,
                 order_item_id INT NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
@@ -111,6 +131,7 @@ async function updateDB() {
         `);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_item_variants_order_item ON order_item_variants (order_item_id);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_item_variants_value ON order_item_variants (variant_value_id);`);
+    await pool.query(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS tax_percent NUMERIC(5,2) DEFAULT 0 CHECK (tax_percent >= 0);`);
 
         const kitchenUpdatePath = path.join(__dirname, 'database', 'kitchen_update.sql');
         if (fs.existsSync(kitchenUpdatePath)) {

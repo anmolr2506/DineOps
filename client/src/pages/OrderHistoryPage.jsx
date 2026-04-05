@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import DashboardSidebar from '../components/layout/DashboardSidebar';
+import ReceiptButton from '../components/ReceiptButton';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -11,13 +12,14 @@ const OrderHistoryPage = () => {
         date: ''
     });
     const [sessions, setSessions] = useState([]);
+    const [sessionStatusFilter, setSessionStatusFilter] = useState('all');
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [processingOrderId, setProcessingOrderId] = useState(null);
 
     const loadSessions = async () => {
-        const response = await axios.get(`${API_BASE}/sessions/active`);
+        const response = await axios.get(`${API_BASE}/sessions/all`);
         setSessions(response.data.sessions || []);
     };
 
@@ -38,6 +40,14 @@ const OrderHistoryPage = () => {
             setLoading(false);
         }
     };
+
+    const filteredSessions = useMemo(() => {
+        if (sessionStatusFilter === 'all') {
+            return sessions;
+        }
+
+        return sessions.filter((session) => String(session.status || '').toLowerCase() === sessionStatusFilter);
+    }, [sessions, sessionStatusFilter]);
 
     useEffect(() => {
         Promise.all([loadSessions(), loadOrders()]).catch(() => {});
@@ -67,6 +77,28 @@ const OrderHistoryPage = () => {
                 </header>
 
                 <section className="mt-5 rounded-2xl border border-[#c9a14a]/20 bg-[#0a1628]/80 p-5">
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        {["all", "active", "closed"].map((status) => {
+                            const isSelected = sessionStatusFilter === status;
+                            const label = status === 'all' ? 'All Sessions' : `${status.charAt(0).toUpperCase()}${status.slice(1)} Sessions`;
+
+                            return (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => setSessionStatusFilter(status)}
+                                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition ${
+                                        isSelected
+                                            ? 'bg-linear-to-r from-[#c9a14a] to-[#e1bf7f] text-[#1d1204]'
+                                            : 'border border-[#c9a14a]/35 bg-[#0d1d35] text-[#f5dfb3] hover:border-[#c9a14a]/60'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     <div className="grid gap-3 md:grid-cols-4">
                         <select
                             value={filters.session_id}
@@ -74,8 +106,10 @@ const OrderHistoryPage = () => {
                             className="rounded-lg border border-white/15 bg-white px-3 py-2 text-sm text-black"
                         >
                             <option value="">All Sessions</option>
-                            {sessions.map((session) => (
-                                <option key={session.id} value={session.id}>{session.name}</option>
+                            {filteredSessions.map((session) => (
+                                <option key={session.id} value={session.id}>
+                                    {session.name} ({String(session.status || '').toLowerCase() === 'closed' ? 'Closed' : 'Active'})
+                                </option>
                             ))}
                         </select>
 
@@ -152,6 +186,12 @@ const OrderHistoryPage = () => {
                                         >
                                             {processingOrderId === order.id ? 'Processing...' : 'Reject Order'}
                                         </button>
+                                    </div>
+                                )}
+
+                                {['paid', 'completed'].includes(String(order.status || '').toLowerCase()) && (
+                                    <div className="mt-4">
+                                        <ReceiptButton orderId={order.id} />
                                     </div>
                                 )}
                             </article>

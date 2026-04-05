@@ -1,4 +1,5 @@
 const paymentService = require('../services/payment.service');
+const pdfService = require('../services/pdf.service');
 
 const createOrder = async (req, res) => {
     try {
@@ -20,6 +21,16 @@ const verify = async (req, res) => {
             userId: req.user.id,
             io: req.app.locals.io
         });
+
+        const orderId = Number(payload?.local_order_id || payload?.order?.id);
+        if (Number.isInteger(orderId) && orderId > 0) {
+            try {
+                const receipt = await pdfService.generateAndStoreReceipt({ orderId });
+                payload.receipt_download_url = receipt.relativeUrl;
+            } catch (receiptError) {
+                payload.receipt_warning = receiptError.message || 'Receipt could not be auto-generated.';
+            }
+        }
 
         return res.status(200).json(payload);
     } catch (error) {

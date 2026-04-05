@@ -26,7 +26,8 @@ CREATE TABLE order_items (
     variant_id INT REFERENCES product_variants(id) ON DELETE SET NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
     price NUMERIC(10,2) NOT NULL CHECK (price >= 0),
-    subtotal NUMERIC(10,2) NOT NULL CHECK (subtotal >= 0)
+    subtotal NUMERIC(10,2) NOT NULL CHECK (subtotal >= 0),
+    tax_percent NUMERIC(5,2) DEFAULT 0 CHECK (tax_percent >= 0)
 );
 
 CREATE TABLE order_status_history (

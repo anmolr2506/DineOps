@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 const menuByRole = {
     admin: [
         { label: 'Session Dashboard', to: '/session-dashboard' },
-        { label: 'Terminal', to: '/terminal' }
+        { label: 'Terminal', to: '/terminal' },
+        { label: 'Order History', to: '/order-history' }
     ],
     staff: [
         { label: 'Session Dashboard', to: '/session-dashboard' },

@@ -23,6 +23,7 @@ import PaymentPage from './pages/PaymentPage';
 import CustomersPage from './pages/CustomersPage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import KitchenPage from './pages/KitchenPage';
+import RestaurantSettings from './pages/RestaurantSettings';
 import ProfileDock from './components/layout/ProfileDock';
 const Unauthorized = () => <div className="p-10 text-red-500 font-bold text-2xl">401 Unauthorized</div>;
 
@@ -78,6 +79,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['admin']} requireSession={false} />}>
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/order-history" element={<OrderHistoryPage />} />
+              <Route path="/restaurant-settings" element={<RestaurantSettings />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['admin', 'kitchen']} />}>

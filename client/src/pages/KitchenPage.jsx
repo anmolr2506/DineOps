@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { Navigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useSession } from '../context/SessionContext';
 import FilterPanel from '../components/kitchen/FilterPanel';
@@ -11,11 +12,18 @@ import {
     setKitchenOrderStatus
 } from '../services/kitchen.service';
 
+const API_BASE = 'http://localhost:5000/api';
+
 const KitchenPage = () => {
     const { user } = useAuth();
     const { currentSession, getActiveSessions, joinSession } = useSession();
 
     const [orders, setOrders] = useState([]);
+    const [metrics, setMetrics] = useState({
+        pending: 0,
+        completedToday: 0,
+        total: 0
+    });
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState('all');
     const [search, setSearch] = useState('');
@@ -26,6 +34,7 @@ const KitchenPage = () => {
     const [sessionSwitching, setSessionSwitching] = useState(false);
 
     const socketRef = useRef(null);
+    const metricsRefreshTimeoutRef = useRef(null);
 
     const sessionId = currentSession?.id || Number(localStorage.getItem('session_id')) || null;
 
@@ -48,11 +57,28 @@ const KitchenPage = () => {
         }
     }, [sessionId]);
 
+    const calculateMetricsFromOrders = useCallback((ordersData) => {
+        return {
+            pending: ordersData.filter((o) => ['received', 'preparing'].includes(o.status)).length,
+            completedToday: ordersData.filter((o) => o.status === 'served').length,
+            total: ordersData.length
+        };
+    }, []);
+
     const loadOrders = useCallback(async () => {
         if (!sessionId) return;
         const data = await fetchKitchenOrders(sessionId);
         setOrders(data);
-    }, [sessionId]);
+        // Immediately update metrics from loaded orders
+        setMetrics(calculateMetricsFromOrders(data));
+    }, [sessionId, calculateMetricsFromOrders]);
+
+    const loadMetrics = useCallback(async () => {
+        // For kitchen page, metrics are calculated from orders
+        if (orders && orders.length > 0) {
+            setMetrics(calculateMetricsFromOrders(orders));
+        }
+    }, [orders, calculateMetricsFromOrders]);
 
     const playNewOrderTone = useCallback(() => {
         try {
@@ -106,6 +132,18 @@ const KitchenPage = () => {
             await loadOrders();
         });
 
+        // Debounced metrics update listener
+        socket.on('metrics_update', async (payload) => {
+            if (Number(payload?.session_id) !== Number(sessionId)) return;
+            // Debounce rapid updates
+            if (metricsRefreshTimeoutRef.current) {
+                clearTimeout(metricsRefreshTimeoutRef.current);
+            }
+            metricsRefreshTimeoutRef.current = setTimeout(async () => {
+                await loadOrders();
+            }, 200);
+        });
+
         socket.on('update_order_status', async () => {
             await loadOrders();
         });
@@ -119,10 +157,13 @@ const KitchenPage = () => {
         });
 
         return () => {
+            if (metricsRefreshTimeoutRef.current) {
+                clearTimeout(metricsRefreshTimeoutRef.current);
+            }
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [sessionId, loadOrders, playNewOrderTone]);
+    }, [sessionId, loadOrders, loadMetrics, playNewOrderTone]);
 
     const normalizedOrders = useMemo(
         () =>
@@ -177,27 +218,6 @@ const KitchenPage = () => {
         });
     }, [normalizedOrders, status, selectedProduct, selectedCategory, search]);
 
-    const stats = useMemo(() => {
-        const today = new Date();
-        const isSameDay = (value) => {
-            const date = new Date(value);
-            return (
-                date.getFullYear() === today.getFullYear() &&
-                date.getMonth() === today.getMonth() &&
-                date.getDate() === today.getDate()
-            );
-        };
-
-        const pending = normalizedOrders.filter((order) => ['received', 'preparing'].includes(order.status)).length;
-        const completedToday = normalizedOrders.filter((order) => order.status === 'served' && isSameDay(order.created_at)).length;
-
-        return {
-            pending,
-            completedToday,
-            total: normalizedOrders.length
-        };
-    }, [normalizedOrders]);
-
     const updateOrderStatusOptimistically = useCallback((orderId, nextStatus) => {
         setOrders((prev) =>
             prev.map((order) =>
@@ -216,6 +236,7 @@ const KitchenPage = () => {
             updateOrderStatusOptimistically(orderId, 'preparing');
             try {
                 await setKitchenOrderStatus(orderId, 'preparing');
+                await loadOrders();
             } catch (_error) {
                 await loadOrders();
             }
@@ -228,6 +249,7 @@ const KitchenPage = () => {
             updateOrderStatusOptimistically(orderId, 'served');
             try {
                 await setKitchenOrderStatus(orderId, 'served');
+                await loadOrders();
             } catch (_error) {
                 await loadOrders();
             }
@@ -253,6 +275,7 @@ const KitchenPage = () => {
 
             try {
                 await setKitchenOrderItemPrepared(itemId, isPrepared);
+                await loadOrders();
             } catch (_error) {
                 await loadOrders();
             }
@@ -320,15 +343,15 @@ const KitchenPage = () => {
                         <div className="grid grid-cols-3 gap-3">
                             <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 px-4 py-3 text-center">
                                 <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Pending</p>
-                                <p className="mt-1 text-2xl font-bold text-amber-200">{stats.pending}</p>
+                                <p className="mt-1 text-2xl font-bold text-amber-200">{metrics.pending}</p>
                             </div>
                             <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 px-4 py-3 text-center">
                                 <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Completed Today</p>
-                                <p className="mt-1 text-2xl font-bold text-emerald-300">{stats.completedToday}</p>
+                                <p className="mt-1 text-2xl font-bold text-emerald-300">{metrics.completedToday}</p>
                             </div>
                             <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 px-4 py-3 text-center">
                                 <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Total Orders</p>
-                                <p className="mt-1 text-2xl font-bold text-cyan-200">{stats.total}</p>
+                                <p className="mt-1 text-2xl font-bold text-cyan-200">{metrics.total}</p>
                             </div>
                         </div>
 
