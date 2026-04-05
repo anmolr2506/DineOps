@@ -1,181 +1,240 @@
-﻿# DineOps - Premium POS & Restaurant Management System
+﻿# DineOps Setup Guide (New PC)
 
-DineOps is a comprehensive Restaurant POS, kitchen display, and table-reservation platform built with React, Node.js, Express, PostgreSQL, and Socket.IO. 
+This README is the complete setup guide to run DineOps on a different machine from scratch.
 
-This guide provides step-by-step instructions for teammates to set up the exact same environment and database structure on their local machines.
+## 1. Tech Stack
 
-## 🎯 Key Features
-- **Real-time POS Terminal:** Floor and table selection, variant-aware cart, and live order syncing.
-- **Payment Processing:** Cash, Physical Card, and UPI with live Razorpay Integration.
-- **Live Kitchen Sync:** WebSockets push approved/paid orders directly to the Kitchen Dashboard.
-- **Table Management & Reservations:** Visual floor plans with live hold/reservation statuses.
-- **Admin/Session Controls:** Cash-drawer tracking and dynamic payment capability limits per session.
+- Frontend: React + Vite
+- Backend: Node.js + Express + Socket.IO
+- Database: PostgreSQL
 
----
+## 2. Prerequisites
 
-## 1. Prerequisites
+Install these first:
 
-Before cloning the repository, ensure you have the following installed:
-- **Node.js** (v18+ recommended)
-- **PostgreSQL** (v14+ recommended)
-- **Git**
+- Node.js 18+ (LTS recommended)
+- npm (ships with Node)
+- PostgreSQL 14+ (or compatible)
+- Git
 
-*Optional but recommended:*
-- **pgAdmin** or **DBeaver** for easy database inspection.
+Optional tools:
 
----
+- pgAdmin or DBeaver (for DB inspection)
 
-## 2. Clone and Install Dependencies
+## 3. Clone Repository
 
-Open your terminal and run:
+```bash
+git clone <your-repo-url>
+cd dineops
+```
 
-`ash
-# 1. Clone the repository
-git clone https://github.com/anmolr2506/DineOps.git
-cd DineOps
+## 4. Install Dependencies
 
-# 2. Install Backend Dependencies
+Install dependencies in both server and client folders.
+
+```bash
 cd server
 npm install
 
-# 3. Install Frontend Dependencies
 cd ../client
 npm install
-`
 
----
+cd ..
+```
 
-## 3. Environment Variables (.env)
+## 5. Create Environment File
 
-You need to configure the backend environment variables. Create a .env file inside the server/ directory:
+Create this file:
 
-`ash
-# On Windows (Command Prompt)
-cd server
-type NUL > .env
+- `server/.env`
 
-# On Mac/Linux
-cd server
-touch .env
-`
+Use this template:
 
-Open server/.env and paste the following template. **Update the PG_PASSWORD to match your local PostgreSQL password.**
-
-`env
-# Server Config
+```env
+# Server
 PORT=5000
 CLIENT_ORIGIN=http://localhost:5173
+SERVER_ORIGIN=http://localhost:5000
 
-# Database Credentials
+# PostgreSQL
 PG_USER=postgres
-PG_PASSWORD=your_postgres_password_here
+PG_PASSWORD=your_postgres_password
 PG_HOST=localhost
 PG_PORT=5432
 PG_DATABASE=pos_cafe
 
-# Authentication
-JWT_SECRET=your_super_secret_jwt_key_here
+# Auth
+JWT_SECRET=replace_with_a_long_random_secret
 
-# Payment Gateway (Razorpay)
-# Ask the project lead for the test/prod keys if you need to test live transactions
-RAZORPAY_KEY_ID=rzp_test_SZYe0hBnQVRUKI
-RAZORPAY_KEY_SECRET=5HUFL1E3ENW4U4PIGfNaec32
+# Razorpay (required for gateway checkout flows)
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 
-# Email / SMTP Configuration (For password resets)
-SMTP_HOST=smtp.ethereal.email
+# Email (optional: used by forgot/reset password)
+SMTP_HOST=
 SMTP_PORT=587
-SMTP_USER=your_smtp_user
-SMTP_PASS=your_smtp_password
-`
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM="DineOps <noreply@dineops.com>"
 
----
+# Optional image seeding config (used only by seedMenuImages script)
+MENU_IMAGE_PROVIDER_URL=
+MENU_IMAGE_API_KEY=
+MENU_IMAGE_MODEL=
+```
 
-## 4. Database Initialization (Important)
+Notes:
 
-To ensure your local database exactly matches the team's structure (including all new tables for POS, variants, and Razorpay payments), we use automated setup scripts.
+- `PG_DATABASE` should remain `pos_cafe` for default SQL/setup scripts.
+- If SMTP values are empty, password reset falls back to a test email transport.
+- Never commit real secrets to git.
 
-From the **project root directory** (DineOps/), run the fresh setup script:
+## 6. Initialize Database (Fresh Machine)
 
-`ash
+From project root:
+
+```bash
 node server/runSetup.js
-`
+```
 
-**What this does:**
-1. Connects to the default postgres database.
-2. Drops any existing pos_cafe database to ensure a clean slate.
-3. Recreates the pos_cafe database.
-4. Executes all numbered SQL files located in server/database/ in sequential order.
-5. Injects default seed data (admin accounts, default floors, tables, categories, menu items, and variant groups).
+What this script does:
 
-*Note: If you already have a database and just pulled new code, you can alternatively run 
-node server/updateDB.js to only apply missing migrations without dropping your data. This script now also applies the kitchen display migration, including the `is_prepared` item flag and kitchen order status constraints.*
+1. Connects to the default `postgres` database.
+2. Drops and recreates `pos_cafe`.
+3. Runs all numbered SQL files in `server/database` (except `01_database.sql` which is handled first).
+4. Seeds base data (users, floors, tables, categories, products, etc.).
 
-**Important for Kitchen Display:** the kitchen board is session-based. After logging in, make sure a session is selected before opening `/kitchen`.
+Important:
 
----
+- This is destructive for `pos_cafe` (it recreates it).
+- Close DB tools (pgAdmin/DBeaver/query tabs) if drop fails due to active connections.
 
-## 5. Running the Application
+## 7. Update Existing Database (Non-Destructive Path)
 
-You will need two separate terminal windows/tabs to run the stack.
+If you already have data and only want schema updates:
 
-**Terminal 1 (Backend - Node/Express/Socket.IO):**
-`ash
+```bash
+node server/updateDB.js
+```
+
+This applies compatibility updates and kitchen-related migration logic without recreating the full DB.
+
+## 8. Run Backend and Frontend
+
+Use two terminals.
+
+Terminal A (backend):
+
+```bash
 cd server
 npm run dev
-# Server should output: "Server running on port 5000"
-`
+```
 
-**Terminal 2 (Frontend - React/Vite):**
-`ash
+Expected output includes:
+
+- `Server running on port 5000`
+
+Terminal B (frontend):
+
+```bash
 cd client
 npm run dev
-# Frontend should be accessible at: http://localhost:5173
-`
+```
 
----
+Open:
 
-## 6. Default Login Credentials
+- Frontend: `http://localhost:5173`
+- Backend health text: `http://localhost:5000/`
 
-The 
-unSetup.js script automatically creates the following default accounts. Use them to log in at http://localhost:5173/login:
+## 9. First Login / Seeded Users
 
-- **Admin Account**
-  - **Email:** dmin@dineops.com
-  - **Password:** dmin123
-- **Kitchen Account**
-  - **Email:** kitchen@dineops.com
-  - **Password:** kitchen123
+Seeded SQL creates these users:
 
-*(Staff accounts can be created by the Admin via the Users dashboard or via public signup requiring Admin approval).*
+- `admin@dineops.com` (role: admin)
+- `kitchen@dineops.com` (role: kitchen)
 
----
+If you do not have the plain-text password for your environment, reset password directly in DB.
 
-## 7. Verifying Your Setup
+Example reset flow:
 
-Once logged in as Admin, verify the following to ensure your setup is complete:
-1. **Open a Session:** Go to **Sessions**, enter a starting float, and open a new session. Ensure you enable Cash, Card, and UPI.
-2. **Terminal:** Navigate to the **Terminal**, select a Floor and Table, and add an item (e.g., Pizza with variants).
-3. **Payment:** Click **Finalize & Go To Payment**. Test the dummy Razorpay UI under the UPI section or process a Cash order.
-4. **Kitchen Sync:** Open a private browsing window, log in as Kitchen, and verify the paid order appears on the Kitchen Dashboard automatically.
-5. **Kitchen Session Switch:** On the Kitchen page, confirm the current session is shown in the header and that you can switch sessions if multiple sessions are active.
+1. Generate bcrypt hash from `server` folder:
 
----
+```bash
+node -e "const b=require('bcrypt');b.hash('NewStrongPass123',10).then(h=>console.log(h))"
+```
 
-## 8. Troubleshooting Common Setup Issues
+2. Update user password in PostgreSQL (`psql` example):
 
-**1. "database pos_cafe is being accessed by other users"**
-- *Fix:* Close pgAdmin, DBeaver, or any other SQL query tabs connected to the pos_cafe database. Then re-run 
-ode server/runSetup.js.
+```sql
+UPDATE users
+SET password = '<paste_generated_hash>'
+WHERE email = 'admin@dineops.com';
+```
 
-**2. "password authentication failed for user postgres"**
-- *Fix:* Double-check your PG_PASSWORD in server/.env. Verify that the PostgreSQL service is running on your machine.
+Then log in with the new password.
 
-**3. "Frontend starts but API calls/Login fail"**
-- *Fix:* Ensure the background terminal running 
-pm run dev in the server folder hasn't crashed. Verify it's running on port 5000.
+## 10. Quick Post-Setup Verification
 
-**4. Kitchen dashboard shows no tickets**
-- *Fix:* Confirm you are logged in as `admin` or `kitchen`, and that a session is selected. The kitchen display only loads orders for the active session.
+After login, verify core flows:
 
-**5. Razorpay checkout window doesn't open**
-- *Fix:* Make sure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are correctly set in your .env file without quotes.
+1. Create/open a session from Sessions page.
+2. Open Terminal page, place an order on a table.
+3. Complete payment (method availability depends on session config).
+4. Confirm order appears on Kitchen dashboard in real time.
+5. Open customer QR flow and verify menu/order/tracking pages load.
+
+## 11. Common Issues and Fixes
+
+1. Database drop fails (`pos_cafe is being accessed by other users`)
+
+- Close DB clients and re-run `node server/runSetup.js`.
+
+2. Postgres auth error (`password authentication failed for user postgres`)
+
+- Verify `PG_USER`, `PG_PASSWORD`, host/port in `server/.env`.
+- Ensure PostgreSQL service is running.
+
+3. Frontend loads but API calls fail
+
+- Confirm backend is running on port `5000`.
+- Check `CLIENT_ORIGIN` and CORS-related values.
+
+4. Login fails with JWT error
+
+- Ensure `JWT_SECRET` exists in `server/.env`.
+- Restart backend after editing env.
+
+5. Razorpay errors
+
+- Verify `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`.
+- Ensure keys match your intended environment (test vs live).
+
+6. PowerShell blocks npm scripts on Windows
+
+- Use Command Prompt, Git Bash, or run through:
+
+```powershell
+cmd /c npm run dev
+```
+
+## 12. Useful Commands
+
+From `server`:
+
+```bash
+npm run dev
+npm start
+npm run seed:review
+npm run seed:judge
+npm run seed:menu-showcase
+npm run seed:menu-images
+```
+
+From `client`:
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```

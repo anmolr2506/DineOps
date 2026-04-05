@@ -3,9 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     completeCustomerPayment,
     createCustomerOrder,
-    createCustomerRazorpayOrder,
-    fetchCustomerContext,
-    verifyCustomerRazorpayPayment
+    fetchCustomerContext
 } from '../../services/customerOrdering.service';
 import CustomerViewportGuard from '../../components/customer/CustomerViewportGuard';
 
@@ -23,9 +21,6 @@ const CustomerPaymentPage = () => {
     const [context, setContext] = useState(null);
     const [secondsLeft, setSecondsLeft] = useState(60);
     const [confirming, setConfirming] = useState(false);
-    const [razorpayReady, setRazorpayReady] = useState(false);
-    const [razorpayLoading, setRazorpayLoading] = useState(false);
-    const [customerName, setCustomerName] = useState('');
 
     const sessionId = Number(searchParams.get('session_id'));
     const tableId = Number(searchParams.get('table_id'));
@@ -49,35 +44,6 @@ const CustomerPaymentPage = () => {
     }, []);
 
     useEffect(() => {
-        const scriptId = 'razorpay-checkout-js';
-
-        if (window.Razorpay) {
-            setRazorpayReady(true);
-            return undefined;
-        }
-
-        const existingScript = document.getElementById(scriptId);
-        if (existingScript) {
-            const onLoad = () => setRazorpayReady(true);
-            existingScript.addEventListener('load', onLoad);
-            return () => existingScript.removeEventListener('load', onLoad);
-        }
-
-        const script = document.createElement('script');
-        script.id = scriptId;
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.async = true;
-        script.onload = () => setRazorpayReady(true);
-        script.onerror = () => setError('Unable to load Razorpay checkout.');
-        document.body.appendChild(script);
-
-        return () => {
-            script.onload = null;
-            script.onerror = null;
-        };
-    }, []);
-
-    useEffect(() => {
         const bootstrap = async () => {
             try {
                 setLoading(true);
@@ -87,8 +53,6 @@ const CustomerPaymentPage = () => {
                 const customerCtx = customerCtxRaw ? JSON.parse(customerCtxRaw) : null;
                 const cartRaw = sessionStorage.getItem(STORAGE_CART);
                 const cart = cartRaw ? JSON.parse(cartRaw) : [];
-
-                setCustomerName(customerCtx?.customer_name || '');
 
                 if (!customerCtx?.customer_name) {
                     navigate(`/customer?${queryString}`);
@@ -105,10 +69,19 @@ const CustomerPaymentPage = () => {
 
                 const savedOrderRaw = sessionStorage.getItem(STORAGE_ORDER);
                 const savedOrder = savedOrderRaw ? JSON.parse(savedOrderRaw) : null;
-                if (savedOrder?.id) {
+                const isSameContextOrder = Boolean(
+                    savedOrder?.id
+                    && Number(savedOrder.session_id) === Number(sessionId)
+                    && Number(savedOrder.table_id) === Number(tableId)
+                );
+
+                if (isSameContextOrder) {
                     setOrder(savedOrder);
                     return;
                 }
+
+                // Remove stale cached order from a different table/session context.
+                sessionStorage.removeItem(STORAGE_ORDER);
 
                 const createdOrder = await createCustomerOrder({
                     sessionId,
@@ -135,74 +108,6 @@ const CustomerPaymentPage = () => {
 
     const total = Number(order?.total_amount || 0);
 
-    const startRazorpayPayment = async () => {
-        if (!order?.id) return;
-
-        try {
-            setRazorpayLoading(true);
-            setError('');
-
-            if (!window.Razorpay) {
-                throw new Error('Razorpay checkout is still loading. Please try again.');
-            }
-
-            const gatewayOrder = await createCustomerRazorpayOrder({
-                orderId: order.id,
-                sessionId,
-                tableId,
-                token
-            });
-
-            const options = {
-                key: gatewayOrder.key_id,
-                amount: gatewayOrder.amount,
-                currency: gatewayOrder.currency,
-                name: 'DineOps',
-                description: `Table ${tableId} order #${order.id}`,
-                order_id: gatewayOrder.order_id,
-                prefill: {
-                    name: customerName || 'Customer'
-                },
-                theme: {
-                    color: '#C9A14A'
-                },
-                handler: async (response) => {
-                    try {
-                        await verifyCustomerRazorpayPayment({
-                            orderId: order.id,
-                            sessionId,
-                            tableId,
-                            token,
-                            razorpayOrderId: response.razorpay_order_id,
-                            razorpayPaymentId: response.razorpay_payment_id,
-                            razorpaySignature: response.razorpay_signature
-                        });
-
-                        sessionStorage.removeItem(STORAGE_CART);
-                        sessionStorage.removeItem(STORAGE_ORDER);
-                        navigate(`/customer/tracking?${queryString}&order_id=${order.id}`);
-                    } catch (verifyError) {
-                        setError(verifyError.response?.data?.error || 'Payment verification failed. Please contact staff.');
-                    }
-                },
-                modal: {
-                    ondismiss: () => setRazorpayLoading(false)
-                }
-            };
-
-            const checkout = new window.Razorpay(options);
-            checkout.on('payment.failed', (response) => {
-                setError(response?.error?.description || 'Payment failed. Please retry.');
-                setRazorpayLoading(false);
-            });
-            checkout.open();
-        } catch (paymentError) {
-            setError(paymentError.response?.data?.error || paymentError.message || 'Unable to start Razorpay checkout.');
-        } finally {
-            setRazorpayLoading(false);
-        }
-    };
-
     const confirmPayment = async (mode) => {
         if (!order?.id) return;
 
@@ -220,6 +125,7 @@ const CustomerPaymentPage = () => {
             });
 
             sessionStorage.removeItem(STORAGE_CART);
+            sessionStorage.removeItem(STORAGE_ORDER);
             navigate(`/customer/tracking?${queryString}&order_id=${order.id}`);
         } catch (requestError) {
             setError(requestError.response?.data?.error || 'Payment confirmation failed. Please retry.');
@@ -252,20 +158,20 @@ const CustomerPaymentPage = () => {
                             </div>
                             <p className="mt-2 text-[0.68rem] uppercase tracking-[0.28em] text-[#C9A14A]">Timer: {timerLabel}</p>
                             <div className="mt-4 rounded-[1.1rem] border border-[#C9A14A]/18 bg-white/5 p-4 text-center">
-                                <p className="font-display text-[1.4rem] leading-none text-[#f7eed9]">Razorpay Checkout</p>
-                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#f8efe0]/65">Secure online payment</p>
-                                <p className="mt-2 text-sm text-[#f8efe0]/75">This order will be paid through Razorpay directly from the customer screen.</p>
+                                <p className="font-display text-[1.4rem] leading-none text-[#f7eed9]">UPI Payment</p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#f8efe0]/65">Manual confirmation</p>
+                                <p className="mt-2 text-sm text-[#f8efe0]/75">Complete payment via your UPI app and confirm below.</p>
                             </div>
                         </section>
 
                         <section className="rounded-[1.6rem] border border-white/8 bg-[rgba(9,15,28,0.86)] p-5 backdrop-blur-sm">
                             <button
                                 type="button"
-                                disabled={confirming || razorpayLoading || !razorpayReady}
-                                onClick={startRazorpayPayment}
+                                disabled={confirming}
+                                onClick={() => confirmPayment('upi')}
                                 className="w-full rounded-2xl bg-linear-to-r from-[#C9A14A] to-[#d8b15f] px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[#1d1204] disabled:opacity-60"
                             >
-                                {razorpayLoading ? 'Opening Razorpay...' : razorpayReady ? 'Pay with Razorpay' : 'Loading Razorpay...'}
+                                {confirming ? 'Confirming...' : 'I have paid via UPI'}
                             </button>
                             <button
                                 type="button"
@@ -275,7 +181,7 @@ const CustomerPaymentPage = () => {
                             >
                                 Manual Confirm
                             </button>
-                            <p className="mt-3 text-center text-[0.68rem] uppercase tracking-[0.2em] text-[#f8efe0]/55">Fallback only if the gateway is unavailable</p>
+                            <p className="mt-3 text-center text-[0.68rem] uppercase tracking-[0.2em] text-[#f8efe0]/55">Use manual confirm if needed</p>
                         </section>
                     </>
                 )}
