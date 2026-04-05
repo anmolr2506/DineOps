@@ -2,7 +2,25 @@ const pool = require('../config/db');
 const { CategoryServiceError } = require('./category.service');
 
 const resolveMenuScopeSessionId = async () => {
-    const result = await pool.query('SELECT id FROM pos_sessions ORDER BY id ASC LIMIT 1');
+    const result = await pool.query(
+        `
+        SELECT ps.id
+        FROM pos_sessions ps
+        LEFT JOIN categories c ON c.session_id = ps.id
+        LEFT JOIN products p ON p.session_id = ps.id
+        LEFT JOIN variant_groups vg ON vg.session_id = ps.id
+        GROUP BY ps.id
+        ORDER BY
+            (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT p.id) * 2 + COUNT(DISTINCT vg.id) * 3) DESC,
+            GREATEST(
+                COALESCE(MAX(c.created_at), 'epoch'::timestamp),
+                COALESCE(MAX(p.created_at), 'epoch'::timestamp),
+                COALESCE(MAX(vg.created_at), 'epoch'::timestamp)
+            ) DESC,
+            ps.id ASC
+        LIMIT 1
+        `
+    );
     const sessionId = result.rows[0]?.id;
     if (!Number.isInteger(sessionId) || sessionId <= 0) {
         throw new CategoryServiceError('No session available to anchor global menu scope.', 400);

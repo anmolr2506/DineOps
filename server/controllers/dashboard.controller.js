@@ -61,7 +61,28 @@ const getSessionDashboard = async (req, res) => {
     }
 };
 
+const getSessionMetrics = async (req, res) => {
+    try {
+        const sessionId = Number(req.params.id);
+
+        await dashboardService.validateSessionAccess({
+            userId: req.user.id,
+            role: req.user.role,
+            sessionId
+        });
+
+        const metrics = await dashboardService.getSessionMetrics(sessionId);
+
+        return res.status(200).json(metrics);
+    } catch (err) {
+        return res.status(err.statusCode || 500).json({
+            error: err.message || 'Failed to fetch session metrics.'
+        });
+    }
+};
+
 module.exports = {
     getGlobalDashboard,
-    getSessionDashboard
+    getSessionDashboard,
+    getSessionMetrics
 };

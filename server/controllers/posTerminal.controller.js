@@ -1,4 +1,5 @@
 const posTerminalService = require('../services/posTerminal.service');
+const pdfService = require('../services/pdf.service');
 
 const getCustomers = async (req, res) => {
     try {
@@ -64,6 +65,16 @@ const createPayment = async (req, res) => {
             payload: req.body || {},
             io: req.app.locals.io
         });
+
+        const orderId = payload?.order?.id;
+        if (Number.isInteger(Number(orderId)) && Number(orderId) > 0) {
+            try {
+                const receipt = await pdfService.generateAndStoreReceipt({ orderId: Number(orderId) });
+                payload.receipt_download_url = receipt.relativeUrl;
+            } catch (receiptError) {
+                payload.receipt_warning = receiptError.message || 'Receipt could not be auto-generated.';
+            }
+        }
 
         return res.status(201).json(payload);
     } catch (error) {

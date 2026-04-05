@@ -9,6 +9,15 @@ const getActiveSessions = async (req, res) => {
     }
 };
 
+const getAllSessions = async (req, res) => {
+    try {
+        const sessions = await sessionService.getAllSessions();
+        return res.status(200).json({ sessions });
+    } catch (err) {
+        return res.status(500).json({ error: err.message || 'Failed to fetch sessions.' });
+    }
+};
+
 const joinSession = async (req, res) => {
     try {
         const sessionId = Number(req.body.session_id);
@@ -99,6 +108,7 @@ const updatePaymentSettings = async (req, res) => {
 
 module.exports = {
     getActiveSessions,
+    getAllSessions,
     joinSession,
     getCurrentSession,
     createSession,

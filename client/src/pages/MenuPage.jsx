@@ -61,13 +61,24 @@ const MenuPage = () => {
                             <h1 className="mt-1 text-4xl font-semibold" style={{ fontFamily: '"Cormorant Garamond", serif' }}>Menu Management</h1>
                             <p className="mt-2 text-sm text-[#f8efe0]/70">Manage products, categories, and variant groups in one shared place.</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/sessions')}
-                            className="rounded-lg border border-[#c9a14a]/35 bg-[#0d1d35] px-4 py-2 text-sm font-semibold text-[#f5dfb3] transition hover:bg-[#112443]"
-                        >
-                            Sessions
-                        </button>
+                        <div className="flex flex-wrap gap-3">
+                            {canManage && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/restaurant-settings')}
+                                    className="rounded-lg border border-[#c9a14a]/35 bg-[#0d1d35] px-4 py-2 text-sm font-semibold text-[#f5dfb3] transition hover:bg-[#112443]"
+                                >
+                                    Restaurant Settings
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => navigate('/sessions')}
+                                className="rounded-lg border border-[#c9a14a]/35 bg-[#0d1d35] px-4 py-2 text-sm font-semibold text-[#f5dfb3] transition hover:bg-[#112443]"
+                            >
+                                Sessions
+                            </button>
+                        </div>
                     </div>
                 </header>
 

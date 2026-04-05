@@ -118,11 +118,17 @@ const updateOrderStatus = async (req, res) => {
 
 		const io = req.app.locals.io;
 		if (io) {
-			io.to(`session_${updatedOrder.session_id}`).emit('update_order_status', updatedOrder);
-			io.to(`session_${updatedOrder.session_id}`).emit('order_status_updated', {
+			const sessionRoom = `session_${updatedOrder.session_id}`;
+			io.to(sessionRoom).emit('update_order_status', updatedOrder);
+			io.to(sessionRoom).emit('order_status_updated', {
 				order_id: updatedOrder.id,
 				session_id: updatedOrder.session_id,
 				status: updatedOrder.status,
+				at: new Date().toISOString()
+			});
+			// Emit centralized metrics update event
+			io.to(sessionRoom).emit('metrics_update', {
+				session_id: updatedOrder.session_id,
 				at: new Date().toISOString()
 			});
 		}
@@ -165,10 +171,16 @@ const updateOrderItemPrepared = async (req, res) => {
 		const sessionId = orderResult.rows[0]?.session_id;
 		const io = req.app.locals.io;
 		if (io && sessionId) {
-			io.to(`session_${sessionId}`).emit('update_item_status', {
+			const sessionRoom = `session_${sessionId}`;
+			io.to(sessionRoom).emit('update_item_status', {
 				id: item.id,
 				order_id: item.order_id,
 				is_prepared: item.is_prepared
+			});
+			// Emit centralized metrics update event
+			io.to(sessionRoom).emit('metrics_update', {
+				session_id: sessionId,
+				at: new Date().toISOString()
 			});
 		}
 

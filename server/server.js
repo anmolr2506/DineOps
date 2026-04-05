@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 require("dotenv").config();
 
@@ -29,6 +30,8 @@ const customerReservationRoutes = require('./routes/customerReservation.routes')
 const posTerminalRoutes = require('./routes/posTerminal.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const kitchenRoutes = require('./routes/kitchen.routes');
+const pdfRoutes = require('./routes/pdf.routes');
+const restaurantConfigRoutes = require('./routes/restaurantConfig.routes');
 const { cleanupExpiredReservationsAndHolds } = require('./services/customerReservation.service');
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
@@ -41,6 +44,9 @@ app.use('/api', customerReservationRoutes);
 app.use('/api', posTerminalRoutes);
 app.use('/api', paymentRoutes);
 app.use('/api/kitchen', kitchenRoutes);
+app.use('/api', pdfRoutes);
+app.use('/api', restaurantConfigRoutes);
+app.use('/generated', express.static(path.join(__dirname, 'generated')));
 
 io.on('connection', (socket) => {
   socket.on('join_session_room', (sessionId) => {

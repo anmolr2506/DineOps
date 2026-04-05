@@ -5,6 +5,7 @@ const { verifyToken, requireRole } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 router.get('/active', verifyToken, sessionController.getActiveSessions);
+router.get('/all', verifyToken, sessionController.getAllSessions);
 router.post('/join', verifyToken, sessionController.joinSession);
 router.get('/current', verifyToken, sessionController.getCurrentSession);
 router.post('/', verifyToken, requireRole(['admin']), sessionController.createSession);

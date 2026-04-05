@@ -8,6 +8,7 @@ import StatsCard from '../components/dashboard/StatsCard';
 import RecentOrders from '../components/dashboard/RecentOrders';
 import LiveActivity from '../components/dashboard/LiveActivity';
 import SalesChart from '../components/dashboard/SalesChart';
+import SessionReportButton from '../components/SessionReportButton';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -25,6 +26,7 @@ const SessionDashboard = () => {
     const [error, setError] = useState('');
     const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
     const socketRef = useRef(null);
+    const metricsRefreshTimeoutRef = useRef(null);
 
     const fetchDashboard = async ({ silent = false } = {}) => {
         try {
@@ -70,6 +72,16 @@ const SessionDashboard = () => {
             fetchDashboard({ silent: true });
         };
 
+        // Debounced metrics update listener
+        const onMetricsUpdate = () => {
+            if (metricsRefreshTimeoutRef.current) {
+                clearTimeout(metricsRefreshTimeoutRef.current);
+            }
+            metricsRefreshTimeoutRef.current = setTimeout(() => {
+                fetchDashboard({ silent: true });
+            }, 200);
+        };
+
         const subscribedEvents = [
             'user_joined_session',
             'session_payment_settings_updated',
@@ -77,13 +89,19 @@ const SessionDashboard = () => {
             'new_order',
             'order_updated',
             'order_status_updated',
+            'order_item_prepared',
             'payment_recorded',
             'activity_logged',
-            'dashboard_refresh'
+            'dashboard_refresh',
+            'metrics_update'
         ];
 
         subscribedEvents.forEach((eventName) => {
-            socketClient.on(eventName, onRealtimeRefresh);
+            if (eventName === 'metrics_update') {
+                socketClient.on(eventName, onMetricsUpdate);
+            } else {
+                socketClient.on(eventName, onRealtimeRefresh);
+            }
         });
 
         const pollInterval = setInterval(() => {
@@ -92,8 +110,15 @@ const SessionDashboard = () => {
 
         return () => {
             clearInterval(pollInterval);
+            if (metricsRefreshTimeoutRef.current) {
+                clearTimeout(metricsRefreshTimeoutRef.current);
+            }
             subscribedEvents.forEach((eventName) => {
-                socketClient.off(eventName, onRealtimeRefresh);
+                if (eventName === 'metrics_update') {
+                    socketClient.off(eventName, onMetricsUpdate);
+                } else {
+                    socketClient.off(eventName, onRealtimeRefresh);
+                }
             });
             socketClient.disconnect();
             socketRef.current = null;
@@ -154,7 +179,7 @@ const SessionDashboard = () => {
                     <button type="button" className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">Manage Tables</button>
                     <button type="button" className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">Generate QR</button>
                     <button type="button" onClick={() => navigate('/kitchen')} className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">View Kitchen</button>
-                    <button type="button" className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">View Reports</button>
+                    <SessionReportButton sessionId={sessionId} />
                 </section>
 
                 <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
