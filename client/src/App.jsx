@@ -11,6 +11,10 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerOrderPage from './pages/CustomerOrderPage';
 import CustomerReservationPage from './pages/CustomerReservationPage';
+import CustomerEntry from './pages/customer/CustomerEntry';
+import CustomerMenu from './pages/customer/CustomerMenu';
+import CustomerPaymentPage from './pages/customer/PaymentPage';
+import OrderTracking from './pages/customer/OrderTracking';
 import WaitingApproval from './pages/WaitingApproval';
 import GlobalDashboard from './pages/GlobalDashboard';
 import SessionDashboard from './pages/SessionDashboard';
@@ -38,6 +42,10 @@ function App() {
 
             <Route path="/customer/order" element={<CustomerOrderPage />} />
             <Route path="/customer/reservation" element={<CustomerReservationPage />} />
+            <Route path="/customer" element={<CustomerEntry />} />
+            <Route path="/customer/menu" element={<CustomerMenu />} />
+            <Route path="/customer/payment" element={<CustomerPaymentPage />} />
+            <Route path="/customer/tracking" element={<OrderTracking />} />
 
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

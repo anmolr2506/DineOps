@@ -7,6 +7,42 @@ class CategoryServiceError extends Error {
     }
 }
 
+const SUPPORTED_IMAGE_URL_PATTERN = /\.(png|jpe?g)(\?.*)?$/i;
+
+const normalizeImageUrl = (rawValue) => {
+    const value = typeof rawValue === 'string' ? rawValue.trim() : '';
+    if (!value) {
+        return null;
+    }
+
+    if (value.startsWith('/generated/')) {
+        if (!SUPPORTED_IMAGE_URL_PATTERN.test(value)) {
+            throw new CategoryServiceError('Image URL must be a PNG or JPG/JPEG image.', 400);
+        }
+        return value;
+    }
+
+    let parsed;
+    try {
+        parsed = new URL(value);
+    } catch (_error) {
+        throw new CategoryServiceError('Image URL must be a valid URL.', 400);
+    }
+
+    // Unsplash URLs often rely on query params for final encoding. Force jpg for compatibility.
+    if (/images\.unsplash\.com$/i.test(parsed.hostname)) {
+        parsed.searchParams.set('fm', 'jpg');
+        parsed.searchParams.set('auto', 'format');
+        return parsed.toString();
+    }
+
+    if (!SUPPORTED_IMAGE_URL_PATTERN.test(parsed.pathname)) {
+        throw new CategoryServiceError('Image URL must end with .png, .jpg, or .jpeg.', 400);
+    }
+
+    return parsed.toString();
+};
+
 const resolveMenuScopeSessionId = async () => {
     const result = await pool.query(
         `
@@ -190,7 +226,7 @@ const createCategory = async ({ userId, payload }) => {
     }
 
     const description = payload.description?.trim() || '';
-    const imageUrl = payload.image_url?.trim() || null;
+    const imageUrl = normalizeImageUrl(payload.image_url);
     const status = payload.status === 'inactive' ? 'inactive' : 'active';
     const variantGroupIds = parseVariantGroupIds(payload.variant_group_ids);
     await validateVariantGroupIdsForSession(menuSessionId, variantGroupIds);
@@ -232,7 +268,7 @@ const updateCategory = async ({ categoryId, payload }) => {
     }
 
     const description = payload.description?.trim() || '';
-    const imageUrl = payload.image_url?.trim() || null;
+    const imageUrl = normalizeImageUrl(payload.image_url);
     const status = payload.status === 'inactive' ? 'inactive' : 'active';
     const variantGroupIds = parseVariantGroupIds(payload.variant_group_ids);
     await validateVariantGroupIdsForSession(menuSessionId, variantGroupIds);
@@ -363,7 +399,7 @@ const createProduct = async ({ userId, payload }) => {
     }
 
     const description = payload.description?.trim() || '';
-    const imageUrl = payload.image_url?.trim() || null;
+    const imageUrl = normalizeImageUrl(payload.image_url);
 
     const query = `
         INSERT INTO products (category_id, name, price, tax_percent, value_type, description, image_url, session_id, created_by)
@@ -412,7 +448,7 @@ const updateProduct = async ({ productId, payload }) => {
     }
 
     const description = payload.description?.trim() || '';
-    const imageUrl = payload.image_url?.trim() || null;
+    const imageUrl = normalizeImageUrl(payload.image_url);
     const isAvailable = payload.is_available === false ? false : true;
     const nextCategoryId = payload.category_id !== undefined ? Number(payload.category_id) : null;
 

@@ -30,6 +30,9 @@ const CategoryCard = ({
                     <img
                         src={category.image_url || fallbackImage}
                         alt={category.name}
+                        onError={(event) => {
+                            event.currentTarget.src = fallbackImage;
+                        }}
                         className="h-16 w-16 rounded-lg object-cover"
                     />
                     <div>

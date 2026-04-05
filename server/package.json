@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "seed:review": "node scripts/seedReviewData.js",
     "seed:judge": "node scripts/seedJudgeData.js",
-    "seed:menu-showcase": "node scripts/seedMenuShowcaseData.js"
+    "seed:menu-showcase": "node scripts/seedMenuShowcaseData.js",
+    "seed:menu-images": "node scripts/seedMenuImages.js"
   },
   "keywords": [],
   "author": "",
