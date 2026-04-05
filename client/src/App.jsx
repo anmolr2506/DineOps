@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SessionProvider } from './context/SessionContext';
@@ -11,6 +11,11 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerOrderPage from './pages/CustomerOrderPage';
 import CustomerReservationPage from './pages/CustomerReservationPage';
+import GenerateQRPage from './pages/GenerateQRPage';
+import CustomerScanPage from './pages/CustomerScanPage';
+import CustomerMenuPage from './pages/CustomerMenuPage';
+import CustomerPaymentPage from './pages/CustomerPaymentPage';
+import CustomerTrackingPage from './pages/CustomerTrackingPage';
 import WaitingApproval from './pages/WaitingApproval';
 import GlobalDashboard from './pages/GlobalDashboard';
 import SessionDashboard from './pages/SessionDashboard';
@@ -37,6 +42,10 @@ function App() {
 
             <Route path="/customer/order" element={<CustomerOrderPage />} />
             <Route path="/customer/reservation" element={<CustomerReservationPage />} />
+            <Route path="/customer/scan" element={<CustomerScanPage />} />
+            <Route path="/customer/menu" element={<CustomerMenuPage />} />
+            <Route path="/customer/payment" element={<CustomerPaymentPage />} />
+            <Route path="/customer/tracking" element={<CustomerTrackingPage />} />
 
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -73,6 +82,7 @@ function App() {
               <Route path="/terminal/legacy" element={<PosPage />} />
               <Route path="/pos" element={<Navigate to="/terminal" replace />} />
               <Route path="/staff/dashboard" element={<Navigate to="/pos" replace />} />
+              <Route path="/generate-qr" element={<GenerateQRPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['admin']} requireSession={false} />}>

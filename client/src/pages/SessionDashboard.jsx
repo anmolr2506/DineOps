@@ -152,7 +152,7 @@ const SessionDashboard = () => {
                 <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                     <button type="button" onClick={() => navigate('/terminal')} className="rounded-xl border border-[#c9a14a]/30 bg-linear-to-r from-[#c9a14a] to-[#e1bf7f] px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#1d1204]">New POS Order</button>
                     <button type="button" className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">Manage Tables</button>
-                    <button type="button" className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">Generate QR</button>
+                    <button type="button" onClick={() => navigate('/generate-qr')} className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">Generate QR</button>
                     <button type="button" onClick={() => navigate('/kitchen')} className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">View Kitchen</button>
                     <button type="button" className="rounded-xl border border-white/15 bg-[#0a1628]/80 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-[#f8efe0]/85">View Reports</button>
                 </section>
